@@ -1,0 +1,104 @@
+// src/controllers/cars.controller.js
+import { prisma } from '../config/db.js';
+import { cloudinary } from '../config/cloudinary.js';
+
+export const getCars = async (req, res, next) => {
+  try {
+    const {
+      make, bodyType, fuel, transmission, condition,
+      minPrice, maxPrice, minYear, maxYear,
+      search, featured, page = 1, limit = 12, sort = 'createdAt'
+    } = req.query;
+
+    const where = { status: 'AVAILABLE' };
+
+    if (make) where.make = { contains: make, mode: 'insensitive' };
+    if (bodyType) where.bodyType = bodyType;
+    if (fuel) where.fuel = fuel;
+    if (transmission) where.transmission = transmission;
+    if (condition) where.condition = condition;
+    if (featured === 'true') where.featured = true;
+    if (minPrice || maxPrice) where.price = {};
+    if (minPrice) where.price.gte = parseFloat(minPrice);
+    if (maxPrice) where.price.lte = parseFloat(maxPrice);
+    if (minYear || maxYear) where.year = {};
+    if (minYear) where.year.gte = parseInt(minYear);
+    if (maxYear) where.year.lte = parseInt(maxYear);
+    if (search) {
+      where.OR = [
+        { make: { contains: search, mode: 'insensitive' } },
+        { model: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    const orderBy = sort === 'price_asc' ? { price: 'asc' }
+      : sort === 'price_desc' ? { price: 'desc' }
+      : sort === 'year' ? { year: 'desc' }
+      : { createdAt: 'desc' };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [cars, total] = await Promise.all([
+      prisma.car.findMany({ where, orderBy, skip, take: parseInt(limit) }),
+      prisma.car.count({ where })
+    ]);
+
+    res.json({ cars, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+  } catch (err) { next(err); }
+};
+
+export const getCarById = async (req, res, next) => {
+  try {
+    const car = await prisma.car.findUnique({ where: { id: req.params.id } });
+    if (!car) return res.status(404).json({ message: 'Car not found' });
+    res.json(car);
+  } catch (err) { next(err); }
+};
+
+export const createCar = async (req, res, next) => {
+  try {
+    const images = req.files?.map(f => f.path) || [];
+    const car = await prisma.car.create({
+      data: { ...req.body, images, price: parseFloat(req.body.price), year: parseInt(req.body.year), mileage: parseInt(req.body.mileage), horsepower: req.body.horsepower ? parseInt(req.body.horsepower) : null }
+    });
+    res.status(201).json(car);
+  } catch (err) { next(err); }
+};
+
+export const updateCar = async (req, res, next) => {
+  try {
+    const car = await prisma.car.update({ where: { id: req.params.id }, data: req.body });
+    res.json(car);
+  } catch (err) { next(err); }
+};
+
+export const deleteCar = async (req, res, next) => {
+  try {
+    await prisma.car.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Car deleted' });
+  } catch (err) { next(err); }
+};
+
+export const toggleFavorite = async (req, res, next) => {
+  try {
+    const { carId } = req.params;
+    const userId = req.user.id;
+    const existing = await prisma.favorite.findUnique({ where: { userId_carId: { userId, carId } } });
+    if (existing) {
+      await prisma.favorite.delete({ where: { userId_carId: { userId, carId } } });
+      return res.json({ favorited: false });
+    }
+    await prisma.favorite.create({ data: { userId, carId } });
+    res.json({ favorited: true });
+  } catch (err) { next(err); }
+};
+
+export const getFavorites = async (req, res, next) => {
+  try {
+    const favorites = await prisma.favorite.findMany({
+      where: { userId: req.user.id },
+      include: { car: true }
+    });
+    res.json(favorites.map(f => f.car));
+  } catch (err) { next(err); }
+};
