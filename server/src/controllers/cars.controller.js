@@ -59,8 +59,16 @@ export const createCar = async (req, res, next) => {
   try {
     const images = req.files?.map(f => f.path) || [];
     const car = await prisma.car.create({
-      data: { ...req.body, images, price: parseFloat(req.body.price), year: parseInt(req.body.year), mileage: parseInt(req.body.mileage), horsepower: req.body.horsepower ? parseInt(req.body.horsepower) : null }
-    });
+  data: { 
+    ...req.body, 
+    images, 
+    price: parseFloat(req.body.price), 
+    year: parseInt(req.body.year), 
+    mileage: parseInt(req.body.mileage), 
+    horsepower: req.body.horsepower ? parseInt(req.body.horsepower) : null,
+    featured: req.body.featured === 'true' || req.body.featured === true
+  }
+});
     res.status(201).json(car);
   } catch (err) { next(err); }
 };
