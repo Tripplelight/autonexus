@@ -99,21 +99,33 @@ const CarFormModal = ({ car, onClose, onSuccess }) => {
 
   const handleImages = (e) => {
     const files = Array.from(e.target.files);
-    setImages(files);
-    setPreviews(files.map(f => URL.createObjectURL(f)));
+    setImages(prev => [...prev, ...files]);
+    setPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
   };
 
   const removePreview = (i) => {
+    const isExisting = previews[i]?.startsWith('http');
     setPreviews(prev => prev.filter((_, idx) => idx !== i));
-    setImages(prev => prev.filter((_, idx) => idx !== i));
+    if (!isExisting) {
+      // Only remove from new images array if it's a new upload
+      const newImgIndex = previews.slice(0, i).filter(p => !p.startsWith('http')).length;
+      setImages(prev => prev.filter((_, idx) => idx !== newImgIndex));
+    }
   };
 
   const { mutate, isPending } = useMutation({
     mutationFn: () => {
       const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      Object.entries(form).forEach(([k, v]) => {
+        if (k === 'featured') fd.append(k, v === true || v === 'true' ? 'true' : 'false');
+        else fd.append(k, v);
+      });
+      // New images to upload
       images.forEach(f => fd.append('images', f));
-      return isEdit ? carsApi.update(car.id, form) : carsApi.create(fd);
+      // Existing images to keep (pass as JSON string)
+      const existingImages = previews.filter(p => p.startsWith('http'));
+      fd.append('existingImages', JSON.stringify(existingImages));
+      return isEdit ? carsApi.update(car.id, fd) : carsApi.create(fd);
     },
     onSuccess: () => { onSuccess(); onClose(); },
     onError: (err) => setError(err.message || 'Something went wrong')
@@ -201,30 +213,33 @@ const CarFormModal = ({ car, onClose, onSuccess }) => {
               className="input !py-3 resize-none w-full text-sm" />
           </FormField>
 
-          {/* Image Upload */}
-          {!isEdit && (
-            <FormField label="Photos (up to 10)">
-              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-brand-500/50 hover:bg-brand-500/5 transition-all">
-                <Upload size={20} className="text-white/30 mb-2" />
-                <span className="text-sm text-white/40">Click to upload images</span>
-                <span className="text-xs text-white/20 mt-1">JPG, PNG, WEBP up to 5MB each</span>
-                <input type="file" multiple accept="image/*" onChange={handleImages} className="hidden" />
-              </label>
-              {previews.length > 0 && (
-                <div className="flex gap-2 flex-wrap mt-3">
-                  {previews.map((src, i) => (
-                    <div key={i} className="relative w-20 h-16 rounded-lg overflow-hidden border border-white/10 group">
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => removePreview(i)}
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <X size={14} className="text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </FormField>
-          )}
+          {/* Image Upload — works for both Add and Edit */}
+          <FormField label={isEdit ? `Photos (${previews.length} current — add more or remove)` : 'Photos (up to 10)'}>
+            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-brand-500/50 hover:bg-brand-500/5 transition-all">
+              <Upload size={18} className="text-white/30 mb-1.5" />
+              <span className="text-sm text-white/40">{isEdit ? 'Click to add more images' : 'Click to upload images'}</span>
+              <span className="text-xs text-white/20 mt-0.5">JPG, PNG, WEBP up to 5MB each</span>
+              <input type="file" multiple accept="image/*" onChange={handleImages} className="hidden" />
+            </label>
+            {previews.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-3">
+                {previews.map((src, i) => (
+                  <div key={i} className="relative w-20 h-16 rounded-lg overflow-hidden border border-white/10 group">
+                    <img src={src} alt="" className="w-full h-full object-cover"
+                      onError={e => { e.target.src = 'https://via.placeholder.com/80x64/1a1a1a/444?text=IMG'; }} />
+                    {/* Badge for existing vs new */}
+                    <span className={`absolute top-1 left-1 text-[9px] px-1 rounded ${src.startsWith('http') ? 'bg-blue-500/80' : 'bg-green-500/80'} text-white`}>
+                      {src.startsWith('http') ? 'saved' : 'new'}
+                    </span>
+                    <button type="button" onClick={() => removePreview(i)}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <X size={14} className="text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </FormField>
 
           {/* Featured toggle */}
           <label className="flex items-center gap-3 cursor-pointer select-none">

@@ -57,25 +57,50 @@ export const getCarById = async (req, res, next) => {
 
 export const createCar = async (req, res, next) => {
   try {
-    const images = req.files?.map(f => f.path) || [];
+    const newImages = req.files?.map(f => f.path) || [];
     const car = await prisma.car.create({
-  data: { 
-    ...req.body, 
-    images, 
-    price: parseFloat(req.body.price), 
-    year: parseInt(req.body.year), 
-    mileage: parseInt(req.body.mileage), 
-    horsepower: req.body.horsepower ? parseInt(req.body.horsepower) : null,
-    featured: req.body.featured === 'true' || req.body.featured === true
-  }
-});
+      data: {
+        ...req.body,
+        images: newImages,
+        price: parseFloat(req.body.price),
+        year: parseInt(req.body.year),
+        mileage: parseInt(req.body.mileage),
+        horsepower: req.body.horsepower ? parseInt(req.body.horsepower) : null,
+        featured: req.body.featured === 'true' || req.body.featured === true
+      }
+    });
     res.status(201).json(car);
   } catch (err) { next(err); }
 };
 
 export const updateCar = async (req, res, next) => {
   try {
-    const car = await prisma.car.update({ where: { id: req.params.id }, data: req.body });
+    // New uploaded images
+    const newImages = req.files?.map(f => f.path) || [];
+
+    // Existing images the user chose to keep (sent as JSON string)
+    let existingImages = [];
+    if (req.body.existingImages) {
+      try { existingImages = JSON.parse(req.body.existingImages); } catch {}
+    }
+
+    // Combine: kept existing + newly uploaded
+    const images = [...existingImages, ...newImages];
+
+    const { existingImages: _, ...rest } = req.body;
+
+    const car = await prisma.car.update({
+      where: { id: req.params.id },
+      data: {
+        ...rest,
+        ...(images.length > 0 && { images }),
+        price: rest.price ? parseFloat(rest.price) : undefined,
+        year: rest.year ? parseInt(rest.year) : undefined,
+        mileage: rest.mileage ? parseInt(rest.mileage) : undefined,
+        horsepower: rest.horsepower ? parseInt(rest.horsepower) : null,
+        featured: rest.featured === 'true' || rest.featured === true
+      }
+    });
     res.json(car);
   } catch (err) { next(err); }
 };
