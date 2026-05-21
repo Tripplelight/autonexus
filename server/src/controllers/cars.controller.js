@@ -1,23 +1,22 @@
 // src/controllers/cars.controller.js
 import { prisma } from '../config/db.js';
-import { cloudinary } from '../config/cloudinary.js';
 
 export const getCars = async (req, res, next) => {
   try {
     const {
       make, bodyType, fuel, transmission, condition,
       minPrice, maxPrice, minYear, maxYear,
-      search, featured, page = 1, limit = 12, sort = 'createdAt'
+      search, featured, dealerId, page = 1, limit = 12, sort = 'createdAt'
     } = req.query;
 
     const where = { status: 'AVAILABLE' };
-
     if (make) where.make = { contains: make, mode: 'insensitive' };
     if (bodyType) where.bodyType = bodyType;
     if (fuel) where.fuel = fuel;
     if (transmission) where.transmission = transmission;
     if (condition) where.condition = condition;
     if (featured === 'true') where.featured = true;
+    if (dealerId) where.dealerId = dealerId;
     if (minPrice || maxPrice) where.price = {};
     if (minPrice) where.price.gte = parseFloat(minPrice);
     if (maxPrice) where.price.lte = parseFloat(maxPrice);
@@ -39,7 +38,10 @@ export const getCars = async (req, res, next) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [cars, total] = await Promise.all([
-      prisma.car.findMany({ where, orderBy, skip, take: parseInt(limit) }),
+      prisma.car.findMany({
+        where, orderBy, skip, take: parseInt(limit),
+        include: { dealer: { select: { businessName: true, location: true, logo: true, phone: true } } }
+      }),
       prisma.car.count({ where })
     ]);
 
@@ -49,7 +51,10 @@ export const getCars = async (req, res, next) => {
 
 export const getCarById = async (req, res, next) => {
   try {
-    const car = await prisma.car.findUnique({ where: { id: req.params.id } });
+    const car = await prisma.car.findUnique({
+      where: { id: req.params.id },
+      include: { dealer: { select: { businessName: true, location: true, logo: true, phone: true, userId: true } } }
+    });
     if (!car) return res.status(404).json({ message: 'Car not found' });
     res.json(car);
   } catch (err) { next(err); }
@@ -58,9 +63,23 @@ export const getCarById = async (req, res, next) => {
 export const createCar = async (req, res, next) => {
   try {
     const newImages = req.files?.map(f => f.path) || [];
+
+    // Get dealer profile if user is a dealer
+    let dealerId = null;
+    if (req.user.role === 'DEALER') {
+      const dealer = await prisma.dealer.findUnique({ where: { userId: req.user.id } });
+      if (!dealer) return res.status(404).json({ message: 'Dealer profile not found' });
+      if (!['TRIAL', 'ACTIVE'].includes(dealer.subscriptionStatus))
+        return res.status(403).json({ message: 'Your subscription has expired. Please renew to add listings.' });
+      dealerId = dealer.id;
+    }
+
+    const { existingImages: _, ...bodyData } = req.body;
+
     const car = await prisma.car.create({
       data: {
-        ...req.body,
+        ...bodyData,
+        dealerId,
         images: newImages,
         price: parseFloat(req.body.price),
         year: parseInt(req.body.year),
@@ -75,21 +94,25 @@ export const createCar = async (req, res, next) => {
 
 export const updateCar = async (req, res, next) => {
   try {
-    // New uploaded images
-    const newImages = req.files?.map(f => f.path) || [];
+    const car = await prisma.car.findUnique({ where: { id: req.params.id } });
+    if (!car) return res.status(404).json({ message: 'Car not found' });
 
-    // Existing images the user chose to keep (sent as JSON string)
+    // Dealers can only edit their own cars
+    if (req.user.role === 'DEALER') {
+      const dealer = await prisma.dealer.findUnique({ where: { userId: req.user.id } });
+      if (car.dealerId !== dealer?.id)
+        return res.status(403).json({ message: 'You can only edit your own listings' });
+    }
+
+    const newImages = req.files?.map(f => f.path) || [];
     let existingImages = [];
     if (req.body.existingImages) {
       try { existingImages = JSON.parse(req.body.existingImages); } catch {}
     }
-
-    // Combine: kept existing + newly uploaded
     const images = [...existingImages, ...newImages];
-
     const { existingImages: _, ...rest } = req.body;
 
-    const car = await prisma.car.update({
+    const updated = await prisma.car.update({
       where: { id: req.params.id },
       data: {
         ...rest,
@@ -101,12 +124,21 @@ export const updateCar = async (req, res, next) => {
         featured: rest.featured === 'true' || rest.featured === true
       }
     });
-    res.json(car);
+    res.json(updated);
   } catch (err) { next(err); }
 };
 
 export const deleteCar = async (req, res, next) => {
   try {
+    const car = await prisma.car.findUnique({ where: { id: req.params.id } });
+    if (!car) return res.status(404).json({ message: 'Car not found' });
+
+    if (req.user.role === 'DEALER') {
+      const dealer = await prisma.dealer.findUnique({ where: { userId: req.user.id } });
+      if (car.dealerId !== dealer?.id)
+        return res.status(403).json({ message: 'You can only delete your own listings' });
+    }
+
     await prisma.car.delete({ where: { id: req.params.id } });
     res.json({ message: 'Car deleted' });
   } catch (err) { next(err); }
