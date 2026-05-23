@@ -11,6 +11,7 @@ import carRoutes from './routes/cars.js';
 import orderRoutes from './routes/orders.js';
 import aiRoutes from './routes/ai.js';
 import userRoutes from './routes/users.js';
+import dealerRoutes from './routes/dealers.js';
 
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -36,6 +37,7 @@ app.use('/api/cars', carRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/dealers', dealerRoutes);
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', service: 'AutoNexus API' }));

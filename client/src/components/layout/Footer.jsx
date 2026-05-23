@@ -26,6 +26,13 @@ export default function Footer() {
             </div>
           </div>
           <div>
+            <h4 className="text-sm font-semibold text-white mb-4">Dealers</h4>
+            <div className="space-y-2 text-sm text-white/40">
+              <Link to="/become-a-dealer" className="block hover:text-brand-400 transition-colors text-brand-400/70">List Your Cars →</Link>
+              <Link to="/login" className="block hover:text-white transition-colors">Dealer Login</Link>
+            </div>
+          </div>
+          <div>
             <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
             <div className="space-y-2 text-sm text-white/40">
               <span className="block">About Us</span>

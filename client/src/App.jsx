@@ -11,6 +11,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AccountPage from './pages/AccountPage';
 import AdminPage from './pages/AdminPage';
+import SuperAdminPage from './pages/SuperAdminPage';
+import DealerDashboardPage from './pages/DealerDashboardPage';
+import DealerRegisterPage from './pages/DealerRegisterPage';
 import FavoritesPage from './pages/FavoritesPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -23,9 +26,9 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" replace />;
 };
 
-const AdminRoute = ({ children }) => {
+const RoleRoute = ({ children, roles }) => {
   const user = useAuthStore(s => s.user);
-  return user?.role === 'ADMIN' ? children : <Navigate to="/" replace />;
+  return roles.includes(user?.role) ? children : <Navigate to="/" replace />;
 };
 
 export default function App() {
@@ -39,9 +42,17 @@ export default function App() {
             <Route path="/cars/:id" element={<CarDetailPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/become-a-dealer" element={<DealerRegisterPage />} />
             <Route path="/favorites" element={<PrivateRoute><FavoritesPage /></PrivateRoute>} />
             <Route path="/account" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
-            <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+            {/* Dealer */}
+            <Route path="/dealer/dashboard" element={
+              <PrivateRoute><RoleRoute roles={['DEALER', 'SUPER_ADMIN']}><DealerDashboardPage /></RoleRoute></PrivateRoute>
+            } />
+            {/* Legacy admin — redirect to super admin */}
+            <Route path="/admin" element={
+              <PrivateRoute><RoleRoute roles={['SUPER_ADMIN']}><SuperAdminPage /></RoleRoute></PrivateRoute>
+            } />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

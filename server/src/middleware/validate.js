@@ -45,3 +45,15 @@ export const orderRules = [
   body('carId').notEmpty().withMessage('Car ID is required'),
   body('type').isIn(['INQUIRY', 'DEPOSIT', 'PURCHASE']).withMessage('Invalid order type'),
 ];
+
+// ── Dealer rules ──────────────────────────────────────────────────────────────
+export const dealerRegisterRules = [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('email').trim().isEmail().withMessage('Valid email required').normalizeEmail(),
+  body('password').isLength({ min: 8 }).withMessage('Min 8 characters')
+    .matches(/[A-Z]/).withMessage('Include an uppercase letter')
+    .matches(/[0-9]/).withMessage('Include a number'),
+  body('phone').notEmpty().withMessage('Phone is required'),
+  body('businessName').trim().notEmpty().withMessage('Business name is required'),
+  body('location').trim().notEmpty().withMessage('Location is required'),
+];

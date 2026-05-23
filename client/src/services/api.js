@@ -54,4 +54,18 @@ export const aiApi = {
   testDrive: (carId, data) => api.post(`/ai/test-drive/${carId}`, data)
 };
 
+// Dealers
+export const dealerApi = {
+  register: (data) => api.post('/dealers/register', data),
+  getProfile: () => api.get('/dealers/profile'),
+  updateProfile: (data) => api.patch('/dealers/profile', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getMyCars: () => api.get('/dealers/my-cars'),
+  getMyOrders: () => api.get('/dealers/my-orders'),
+  getSubscription: () => api.get('/dealers/subscription'),
+  // Super admin
+  getAll: () => api.get('/dealers'),
+  updateSubscription: (dealerId, data) => api.patch(`/dealers/${dealerId}/subscription`, data),
+  suspend: (dealerId) => api.patch(`/dealers/${dealerId}/suspend`)
+};
+
 export default api;

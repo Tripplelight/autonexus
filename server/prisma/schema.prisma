@@ -5,10 +5,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
 
+// ── Users ─────────────────────────────────────────────────────────────────────
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -19,18 +21,74 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orders    Order[]
-  favorites Favorite[]
+  orders       Order[]
+  favorites    Favorite[]
   chatSessions ChatSession[]
+  dealer       Dealer?
 }
 
 enum Role {
   USER
+  DEALER
   ADMIN
+  SUPER_ADMIN
 }
 
+// ── Dealers ───────────────────────────────────────────────────────────────────
+model Dealer {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  businessName     String
+  phone            String
+  location         String
+  kraPin           String?
+  logo             String?
+  description      String?
+  subscriptionStatus SubscriptionStatus @default(TRIAL)
+  trialEndsAt      DateTime
+  subscriptionEndsAt DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  cars         Car[]
+  orders       Order[]
+  subscriptions Subscription[]
+
+  @@index([subscriptionStatus])
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
+// ── Subscriptions ─────────────────────────────────────────────────────────────
+model Subscription {
+  id        String             @id @default(cuid())
+  dealerId  String
+  amount    Float
+  status    SubscriptionPaymentStatus @default(PENDING)
+  mpesaRef  String?
+  period    String             // e.g. "2024-01"
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  dealer Dealer @relation(fields: [dealerId], references: [id])
+}
+
+enum SubscriptionPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+// ── Cars ──────────────────────────────────────────────────────────────────────
 model Car {
-  id           String   @id @default(cuid())
+  id           String       @id @default(cuid())
+  dealerId     String?
   make         String
   model        String
   year         Int
@@ -45,17 +103,19 @@ model Car {
   horsepower   Int?
   description  String
   images       String[]
-  featured     Boolean  @default(false)
-  status       CarStatus @default(AVAILABLE)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  featured     Boolean      @default(false)
+  status       CarStatus    @default(AVAILABLE)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
+  dealer    Dealer?   @relation(fields: [dealerId], references: [id])
   orders    Order[]
   favorites Favorite[]
 
   @@index([make, model])
   @@index([price])
   @@index([status])
+  @@index([dealerId])
 }
 
 enum Condition {
@@ -93,10 +153,12 @@ enum CarStatus {
   SOLD
 }
 
+// ── Orders ────────────────────────────────────────────────────────────────────
 model Order {
   id        String      @id @default(cuid())
   userId    String
   carId     String
+  dealerId  String?
   type      OrderType
   status    OrderStatus @default(PENDING)
   amount    Float
@@ -105,8 +167,9 @@ model Order {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
-  car  Car  @relation(fields: [carId], references: [id])
+  user   User    @relation(fields: [userId], references: [id])
+  car    Car     @relation(fields: [carId], references: [id])
+  dealer Dealer? @relation(fields: [dealerId], references: [id])
 }
 
 enum OrderType {
@@ -122,6 +185,7 @@ enum OrderStatus {
   COMPLETED
 }
 
+// ── Favorites ─────────────────────────────────────────────────────────────────
 model Favorite {
   id        String   @id @default(cuid())
   userId    String
@@ -134,6 +198,7 @@ model Favorite {
   @@unique([userId, carId])
 }
 
+// ── Chat ──────────────────────────────────────────────────────────────────────
 model ChatSession {
   id        String        @id @default(cuid())
   userId    String?
