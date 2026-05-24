@@ -1,9 +1,3 @@
-/*
-  Warnings:
-
-  - The values [ADMIN] on the enum `Role` will be removed. If these variants are still used in the database, this will fail.
-
-*/
 -- CreateEnum
 CREATE TYPE "SubscriptionStatus" AS ENUM ('TRIAL', 'ACTIVE', 'EXPIRED', 'SUSPENDED');
 
@@ -12,7 +6,7 @@ CREATE TYPE "SubscriptionPaymentStatus" AS ENUM ('PENDING', 'PAID', 'FAILED');
 
 -- AlterEnum
 BEGIN;
-CREATE TYPE "Role_new" AS ENUM ('USER', 'DEALER', 'SUPER_ADMIN');
+CREATE TYPE "Role_new" AS ENUM ('USER', 'DEALER','ADMIN' 'SUPER_ADMIN');
 ALTER TABLE "User" ALTER COLUMN "role" DROP DEFAULT;
 ALTER TABLE "User" ALTER COLUMN "role" TYPE "Role_new" USING ("role"::text::"Role_new");
 ALTER TYPE "Role" RENAME TO "Role_old";
@@ -20,6 +14,9 @@ ALTER TYPE "Role_new" RENAME TO "Role";
 DROP TYPE "Role_old";
 ALTER TABLE "User" ALTER COLUMN "role" SET DEFAULT 'USER';
 COMMIT;
+
+-- Update existing ADMIN users to SUPER_ADMIN
+UPDATE "User" SET role = 'SUPER_ADMIN'::"Role" WHERE role = 'ADMIN'::"Role";
 
 -- AlterTable
 ALTER TABLE "Car" ADD COLUMN     "dealerId" TEXT;

@@ -1,6 +1,6 @@
 // src/components/cars/CarFormModal.jsx
 import { useState } from 'react';
-import { X, Upload, Star, AlertCircle, Car } from 'lucide-react';
+import { X, Upload, Star, AlertCircle, Car, CheckCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { carsApi } from '../../services/api';
 
@@ -47,6 +47,7 @@ export default function CarFormModal({ car, onClose, onSuccess }) {
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState(car?.images || []);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const isEdit = !!car;
 
   const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }));
@@ -78,7 +79,11 @@ export default function CarFormModal({ car, onClose, onSuccess }) {
       fd.append('existingImages', JSON.stringify(existingImages));
       return isEdit ? carsApi.update(car.id, fd) : carsApi.create(fd);
     },
-    onSuccess: () => { onSuccess(); onClose(); },
+    onSuccess: () => {
+      setSuccess(true);
+      onSuccess();
+      setTimeout(() => onClose(), 1500);
+    },
     onError: (err) => setError(err.message || 'Something went wrong')
   });
 
@@ -108,6 +113,12 @@ export default function CarFormModal({ car, onClose, onSuccess }) {
           {error && (
             <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl">
               <AlertCircle size={15} /> {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-400 text-sm px-4 py-3 rounded-xl">
+              <CheckCircle size={15} /> {isEdit ? 'Car updated successfully!' : 'Car added successfully!'}
             </div>
           )}
 
@@ -172,8 +183,18 @@ export default function CarFormModal({ car, onClose, onSuccess }) {
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-outline flex-1">Cancel</button>
-            <button type="submit" disabled={isPending} className="btn-primary flex-1">
-              {isPending ? (isEdit ? 'Saving...' : 'Adding...') : (isEdit ? 'Save Changes' : 'Add Car')}
+            <button type="submit" disabled={isPending || success}
+              className={`flex-1 font-medium px-6 py-3 rounded-lg transition-all duration-200 active:scale-95 ${
+                success ? 'bg-green-500 text-white cursor-default' :
+                isPending ? 'bg-brand-500/50 text-white cursor-not-allowed' :
+                'bg-brand-500 hover:bg-brand-600 text-white'
+              }`}>
+              {success
+                ? `✅ ${isEdit ? 'Saved!' : 'Car Added!'}`
+                : isPending
+                ? (isEdit ? 'Saving...' : 'Adding car...')
+                : (isEdit ? 'Save Changes' : 'Add Car')
+              }
             </button>
           </div>
         </form>
