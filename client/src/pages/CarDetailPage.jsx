@@ -1,7 +1,7 @@
 // src/pages/CarDetailPage.jsx
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Gauge, Fuel, Settings, Calendar, Palette, Zap, Send, Car,
   TrendingUp, ChevronLeft, ChevronRight, Share2,
@@ -49,6 +49,7 @@ export default function CarDetailPage() {
   const { id } = useParams();
   const { token } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [activeImg, setActiveImg] = useState(0);
   const [tdMessages, setTdMessages] = useState([{
@@ -82,6 +83,9 @@ export default function CarDetailPage() {
   const { mutate: createOrder, isPending } = useMutation({
     mutationFn: (type) => ordersApi.create({ carId: id, type }),
     onSuccess: (res, type) => {
+      queryClient.invalidateQueries({ queryKey: ['my-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['dealer-orders'] });
       if (type === 'INQUIRY') {
         setToast('✅ Inquiry sent! We\'ll contact you soon.');
         setTimeout(() => navigate('/account'), 2500);

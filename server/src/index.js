@@ -12,8 +12,9 @@ import orderRoutes from './routes/orders.js';
 import aiRoutes from './routes/ai.js';
 import userRoutes from './routes/users.js';
 import dealerRoutes from './routes/dealers.js';
-
+import paymentsRouter from './routes/payments.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { runRenewalReminders } from './jobs/renewalReminder.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,6 +39,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dealers', dealerRoutes);
+app.use('/api/payments', paymentsRouter);
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', service: 'AutoNexus API' }));
@@ -45,6 +47,13 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok', service: 'AutoNexus 
 // Error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`🚗 AutoNexus server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚗 AutoNexus server running on port ${PORT}`);
+
+  // Cron — run renewal reminders daily
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+  runRenewalReminders().catch(console.error);
+  setInterval(runRenewalReminders, TWENTY_FOUR_HOURS);
+});
 
 export default app;

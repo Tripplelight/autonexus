@@ -10,12 +10,15 @@ import CarDetailPage from './pages/CarDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AccountPage from './pages/AccountPage';
-import AdminPage from './pages/AdminPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import DealerDashboardPage from './pages/DealerDashboardPage';
 import DealerRegisterPage from './pages/DealerRegisterPage';
+import DealerOnboardingPage from './pages/DealerOnboardingPage';
+import DealerSubscriptionPage from './pages/DealerSubscriptionPage';
+import DealerPublicPage from './pages/DealerPublicPage';
 import FavoritesPage from './pages/FavoritesPage';
 import NotFoundPage from './pages/NotFoundPage';
+import DealerProtectedRoute from './components/protected/DealerProtectedRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 1000 * 60 * 5 } }
@@ -43,16 +46,22 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/become-a-dealer" element={<DealerRegisterPage />} />
+            <Route path="/dealers/:id" element={<DealerPublicPage />} />
             <Route path="/favorites" element={<PrivateRoute><FavoritesPage /></PrivateRoute>} />
             <Route path="/account" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
+
             {/* Dealer */}
-            <Route path="/dealer/dashboard" element={
-              <PrivateRoute><RoleRoute roles={['DEALER', 'SUPER_ADMIN']}><DealerDashboardPage /></RoleRoute></PrivateRoute>
-            } />
-            {/* Legacy admin — redirect to super admin */}
+            <Route element={<DealerProtectedRoute />}>
+              <Route path="/dealer/onboarding" element={<DealerOnboardingPage />} />
+              <Route path="/dealer/dashboard" element={<DealerDashboardPage />} />
+              <Route path="/dealer/subscription" element={<DealerSubscriptionPage />} />
+            </Route>
+
+            {/* Super Admin */}
             <Route path="/admin" element={
               <PrivateRoute><RoleRoute roles={['SUPER_ADMIN']}><SuperAdminPage /></RoleRoute></PrivateRoute>
             } />
+
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

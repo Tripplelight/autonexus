@@ -19,6 +19,7 @@ router.patch('/profile', protect, dealerOnly, upload.single('logo'), updateDeale
 router.get('/my-cars', protect, dealerOnly, getDealerCars);
 router.get('/my-orders', protect, dealerOnly, getDealerOrders);
 router.get('/subscription', protect, dealerOnly, checkSubscription);
+router.patch('/subscription', protect, dealerOnly, updateDealerSubscription);
 
 // Super admin
 router.get('/', protect, superAdminOnly, getAllDealers);

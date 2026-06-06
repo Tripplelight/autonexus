@@ -11,6 +11,8 @@ const BANK_DETAILS = {
   pesalink: process.env.BANK_PESALINK || '0123456789'
 };
 
+const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'];
+
 export const createOrder = async (req, res, next) => {
   try {
     const { carId, type, notes } = req.body;
@@ -24,7 +26,7 @@ export const createOrder = async (req, res, next) => {
     const amount = type === 'DEPOSIT' ? depositAmount : car.price;
 
     const order = await prisma.order.create({
-      data: { userId: req.user.id, carId, type, amount, notes },
+      data: { userId: req.user.id, carId, dealerId: car.dealerId, type, amount, notes },
       include: { car: true }
     });
 
@@ -77,6 +79,13 @@ export const getAllOrders = async (req, res, next) => {
 export const updateOrderStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
+    if (!ORDER_STATUSES.includes(status)) {
+      return res.status(400).json({ message: 'Invalid order status' });
+    }
+
+    const existingOrder = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!existingOrder) return res.status(404).json({ message: 'Order not found' });
+
     const order = await prisma.order.update({
       where: { id: req.params.id },
       data: { status }

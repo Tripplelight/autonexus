@@ -55,17 +55,17 @@ export default function DealerRegisterPage() {
   };
 
   const submit = async () => {
-    const errs = validate(form);
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setServerError(''); setLoading(true);
-    try {
-      const res = await api.post('/dealers/register', form);
-      setAuth(res.user, res.token);
-      navigate('/dealer/dashboard');
-    } catch (err) {
-      setServerError(err.response?.data?.message || 'Registration failed');
-    } finally { setLoading(false); }
-  };
+  const errs = validate(form);
+  if (Object.keys(errs).length) { setErrors(errs); return; }
+  setServerError(''); setLoading(true);
+  try {
+    const res = await api.post('/dealers/register', form);
+    setAuth(res.user, res.token);
+    navigate('/dealer/onboarding'); // ← changed from /dealer/dashboard
+  } catch (err) {
+    setServerError(err.response?.data?.message || 'Registration failed');
+  } finally { setLoading(false); }
+};
 
   return (
     <div className="min-h-[90vh] flex items-center justify-center px-4 py-12">

@@ -3,6 +3,7 @@ import { prisma } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sendWelcomeEmail } from '../services/email.service.js';
+import { computeSubscription, syncDealerStatus } from '../utils/subscription.js';
 
 const signToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -49,7 +50,9 @@ export const getDealerProfile = async (req, res, next) => {
       }
     });
     if (!dealer) return res.status(404).json({ message: 'Dealer profile not found' });
-    res.json(dealer);
+    // Attach the canonical, derived subscription shape so the frontend never has
+    // to read the raw (possibly stale) subscriptionStatus field.
+    res.json({ ...dealer, subscription: computeSubscription(dealer) });
   } catch (err) { next(err); }
 };
 
@@ -103,51 +106,35 @@ export const getDealerOrders = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ── Get dealer public profile ─────────────────────────────────────────────────
+export const getDealerPublicProfile = async (req, res, next) => {
+  try {
+    const dealer = await prisma.dealer.findUnique({
+      where: { id: req.params.dealerId },
+      select: {
+        id: true,
+        businessName: true,
+        location: true,
+        phone: true,
+        logo: true,
+        description: true,
+        _count: { select: { cars: true } }
+      }
+    });
+    if (!dealer) return res.status(404).json({ message: 'Dealer not found' });
+    res.json(dealer);
+  } catch (err) { next(err); }
+};
+
 // ── Check subscription status ─────────────────────────────────────────────────
 export const checkSubscription = async (req, res, next) => {
   try {
     const dealer = await prisma.dealer.findUnique({ where: { userId: req.user.id } });
     if (!dealer) return res.status(404).json({ message: 'Dealer not found' });
 
-    const now = new Date();
-    let status = dealer.subscriptionStatus;
-    let daysLeft = 0;
-
-    if (status === 'TRIAL') {
-      daysLeft = Math.ceil((dealer.trialEndsAt - now) / (1000 * 60 * 60 * 24));
-      // Only expire if trial has actually ended
-      if (daysLeft <= 0) {
-        await prisma.dealer.update({
-          where: { id: dealer.id },
-          data: { subscriptionStatus: 'EXPIRED' }
-        });
-        status = 'EXPIRED';
-        daysLeft = 0;
-      }
-    } else if (status === 'ACTIVE') {
-      // Only check subscription expiry if subscriptionEndsAt is set
-      if (dealer.subscriptionEndsAt) {
-        daysLeft = Math.ceil((dealer.subscriptionEndsAt - now) / (1000 * 60 * 60 * 24));
-        if (daysLeft <= 0) {
-          await prisma.dealer.update({
-            where: { id: dealer.id },
-            data: { subscriptionStatus: 'EXPIRED' }
-          });
-          status = 'EXPIRED';
-          daysLeft = 0;
-        }
-      } else {
-        // No end date set — treat as indefinitely active
-        daysLeft = 999;
-      }
-    }
-
-    res.json({
-      status,
-      daysLeft,
-      trialEndsAt: dealer.trialEndsAt,
-      subscriptionEndsAt: dealer.subscriptionEndsAt
-    });
+    // Single source of truth: derive effective state and lazily persist drift.
+    const subscription = await syncDealerStatus(dealer);
+    res.json(subscription);
   } catch (err) { next(err); }
 };
 
@@ -161,50 +148,80 @@ export const getAllDealers = async (req, res, next) => {
       },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(dealers);
+    // Attach the derived subscription shape so the admin UI shows effective state,
+    // not the raw (possibly stale) stored status. Read-only — no persistence here.
+    res.json(dealers.map(d => ({ ...d, subscription: computeSubscription(d) })));
   } catch (err) { next(err); }
 };
 
-// ── SUPER ADMIN: Update dealer subscription ───────────────────────────────────
+// ── Update / Renew Subscription (Dealer Self + Super Admin) ─────────────────
 export const updateDealerSubscription = async (req, res, next) => {
   try {
-    const { dealerId } = req.params;
-    const { status, months = 1 } = req.body;
+    const { months = 1 } = req.body;
+    let dealerId;
+
+    // Dealer renewing themselves
+    if (req.user.role === 'DEALER') {
+      const dealer = await prisma.dealer.findUnique({
+        where: { userId: req.user.id }
+      });
+      if (!dealer) return res.status(404).json({ message: 'Dealer profile not found' });
+      dealerId = dealer.id;
+    } 
+    // Super Admin updating any dealer
+    else if (req.user.role === 'SUPER_ADMIN' && req.params.dealerId) {
+      dealerId = req.params.dealerId;
+    } 
+    else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
 
     const subscriptionEndsAt = new Date();
     subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + parseInt(months));
 
-    const dealer = await prisma.dealer.update({
+    const updatedDealer = await prisma.dealer.update({
       where: { id: dealerId },
       data: {
-        subscriptionStatus: status,
-        ...(status === 'ACTIVE' && { subscriptionEndsAt })
+        subscriptionStatus: 'ACTIVE',
+        subscriptionEndsAt,
       }
     });
 
-    if (status === 'ACTIVE') {
-      await prisma.subscription.create({
-        data: {
-          dealerId,
-          amount: 5000 * months,
-          status: 'PAID',
-          period: new Date().toISOString().slice(0, 7)
-        }
-      });
-    }
+    // Record payment history
+    await prisma.subscription.create({
+      data: {
+        dealerId,
+        amount: 5000 * parseInt(months),
+        status: 'PAID',
+        period: new Date().toISOString().slice(0, 7),
+      }
+    });
 
-    res.json(dealer);
-  } catch (err) { next(err); }
+    res.json({
+      success: true,
+      message: 'Subscription renewed successfully',
+      subscriptionEndsAt: updatedDealer.subscriptionEndsAt,
+      status: updatedDealer.subscriptionStatus
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
-// ── SUPER ADMIN: Suspend dealer ───────────────────────────────────────────────
+// ── SUPER ADMIN: Suspend Dealer ───────────────────────────────────────────────
 export const suspendDealer = async (req, res, next) => {
   try {
-    const { dealerId } = req.params;
     const dealer = await prisma.dealer.update({
-      where: { id: dealerId },
-      data: { subscriptionStatus: 'SUSPENDED' }
+      where: { id: req.params.dealerId },
+      data: { subscriptionStatus: 'SUSPENDED' },
+      include: {
+        user: { select: { name: true, email: true, createdAt: true } },
+        _count: { select: { cars: true, orders: true } }
+      }
     });
+
     res.json(dealer);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };

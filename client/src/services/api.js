@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api' });
+const multipartConfig = { headers: { 'Content-Type': 'multipart/form-data' } };
+const uploadConfig = (data) =>
+  typeof FormData !== 'undefined' && data instanceof FormData ? multipartConfig : undefined;
 
 api.interceptors.request.use(config => {
   const token = useAuthStore.getState().token;
@@ -22,8 +25,8 @@ api.interceptors.response.use(
 export const carsApi = {
   getAll: (params) => api.get('/cars', { params }),
   getById: (id) => api.get(`/cars/${id}`),
-  create: (data) => api.post('/cars', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  update: (id, data) => api.put(`/cars/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  create: (data) => api.post('/cars', data, uploadConfig(data)),
+  update: (id, data) => api.put(`/cars/${id}`, data, uploadConfig(data)),
   delete: (id) => api.delete(`/cars/${id}`),
   toggleFavorite: (carId) => api.post(`/cars/${carId}/favorite`),
   getFavorites: () => api.get('/cars/favorites')
@@ -62,6 +65,7 @@ export const dealerApi = {
   getMyCars: () => api.get('/dealers/my-cars'),
   getMyOrders: () => api.get('/dealers/my-orders'),
   getSubscription: () => api.get('/dealers/subscription'),
+  renewSubscription: (data) => api.patch('/dealers/subscription', data),
   // Super admin
   getAll: () => api.get('/dealers'),
   updateSubscription: (dealerId, data) => api.patch(`/dealers/${dealerId}/subscription`, data),

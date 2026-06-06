@@ -306,7 +306,15 @@ export default function AdminPage() {
 
   const { mutate: updateStatus } = useMutation({
     mutationFn: ({ id, status }) => ordersApi.updateStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-orders'] })
+    onSuccess: (order) => {
+      qc.invalidateQueries({ queryKey: ['admin-orders'] });
+      qc.invalidateQueries({ queryKey: ['dealer-orders'] });
+      qc.invalidateQueries({ queryKey: ['my-orders'] });
+      qc.invalidateQueries({ queryKey: ['cars'] });
+      qc.invalidateQueries({ queryKey: ['featured-cars'] });
+      if (order?.carId) qc.invalidateQueries({ queryKey: ['car', order.carId] });
+    },
+    onError: (err) => alert(err?.message || 'Failed to update order')
   });
 
   const { mutate: deleteCar, isPending: isDeleting } = useMutation({
@@ -314,18 +322,27 @@ export default function AdminPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-cars'] });
       qc.invalidateQueries({ queryKey: ['cars'] });
+      qc.invalidateQueries({ queryKey: ['featured-cars'] });
       setDeletingCar(null);
-    }
+    },
+    onError: (err) => alert(err?.message || 'Failed to delete car')
   });
 
   const { mutate: toggleFeatured } = useMutation({
     mutationFn: ({ id, featured }) => carsApi.update(id, { featured: !featured }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-cars'] })
+    onSuccess: (car) => {
+      qc.invalidateQueries({ queryKey: ['admin-cars'] });
+      qc.invalidateQueries({ queryKey: ['cars'] });
+      qc.invalidateQueries({ queryKey: ['featured-cars'] });
+      if (car?.id) qc.invalidateQueries({ queryKey: ['car', car.id] });
+    },
+    onError: (err) => alert(err?.message || 'Failed to update featured status')
   });
 
   const onFormSuccess = () => {
     qc.invalidateQueries({ queryKey: ['admin-cars'] });
     qc.invalidateQueries({ queryKey: ['cars'] });
+    qc.invalidateQueries({ queryKey: ['featured-cars'] });
   };
 
   const cars = carsData?.cars || [];

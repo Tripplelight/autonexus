@@ -1,10 +1,9 @@
 // src/pages/SuperAdminPage.jsx
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Car, Package, BarChart3, CheckCircle, XCircle, AlertTriangle, Shield } from 'lucide-react';
+import { Users, Package, BarChart3, CheckCircle, XCircle, AlertTriangle, Shield } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
-import api from '../services/api';
-import { ordersApi } from '../services/api';
+import { dealerApi, ordersApi } from '../services/api';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -35,7 +34,7 @@ export default function SuperAdminPage() {
 
   const { data: dealers } = useQuery({
     queryKey: ['all-dealers'],
-    queryFn: () => api.get('/dealers').then(r => r.data)
+    queryFn: dealerApi.getAll
   });
 
   const { data: orders } = useQuery({
@@ -45,26 +44,37 @@ export default function SuperAdminPage() {
 
   const { mutate: updateSubscription, isPending: updatingSub } = useMutation({
     mutationFn: ({ dealerId, status, months }) =>
-      api.patch(`/dealers/${dealerId}/subscription`, { status, months }).then(r => r.data),
+      dealerApi.updateSubscription(dealerId, { status, months }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['all-dealers'] });
       setActivatingDealer(null);
-    }
+    },
+    onError: (err) => alert(err?.message || 'Failed to update subscription')
   });
 
   const { mutate: suspendDealer } = useMutation({
-    mutationFn: (dealerId) => api.patch(`/dealers/${dealerId}/suspend`).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['all-dealers'] })
+    mutationFn: dealerApi.suspend,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['all-dealers'] }),
+    onError: (err) => alert(err?.message || 'Failed to suspend dealer')
   });
 
   const { mutate: updateOrderStatus } = useMutation({
     mutationFn: ({ id, status }) => ordersApi.updateStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-orders'] })
+    onSuccess: (order) => {
+      qc.invalidateQueries({ queryKey: ['admin-orders'] });
+      qc.invalidateQueries({ queryKey: ['dealer-orders'] });
+      qc.invalidateQueries({ queryKey: ['my-orders'] });
+      qc.invalidateQueries({ queryKey: ['cars'] });
+      qc.invalidateQueries({ queryKey: ['featured-cars'] });
+      if (order?.carId) qc.invalidateQueries({ queryKey: ['car', order.carId] });
+    },
+    onError: (err) => alert(err?.message || 'Failed to update order')
   });
 
-  const activeCount = dealers?.filter(d => d.subscriptionStatus === 'ACTIVE').length || 0;
-  const trialCount = dealers?.filter(d => d.subscriptionStatus === 'TRIAL').length || 0;
-  const expiredCount = dealers?.filter(d => ['EXPIRED', 'SUSPENDED'].includes(d.subscriptionStatus)).length || 0;
+  // Trust the backend-derived `subscription` shape, not the raw stored field.
+  const activeCount = dealers?.filter(d => d.subscription?.status === 'ACTIVE').length || 0;
+  const trialCount = dealers?.filter(d => d.subscription?.status === 'TRIAL').length || 0;
+  const expiredCount = dealers?.filter(d => ['EXPIRED', 'SUSPENDED'].includes(d.subscription?.status)).length || 0;
   const monthlyRevenue = activeCount * 5000;
 
   return (
@@ -151,15 +161,15 @@ export default function SuperAdminPage() {
               <h3 className="font-semibold flex items-center gap-2"><AlertTriangle size={15} className="text-yellow-400" /> Needs Attention</h3>
             </div>
             <div className="divide-y divide-white/5">
-              {dealers?.filter(d => ['EXPIRED', 'SUSPENDED'].includes(d.subscriptionStatus)).length === 0
+              {dealers?.filter(d => ['EXPIRED', 'SUSPENDED'].includes(d.subscription?.status)).length === 0
                 ? <p className="p-6 text-white/30 text-sm text-center">All dealers are active 🎉</p>
-                : dealers?.filter(d => ['EXPIRED', 'SUSPENDED'].includes(d.subscriptionStatus)).map(d => (
+                : dealers?.filter(d => ['EXPIRED', 'SUSPENDED'].includes(d.subscription?.status)).map(d => (
                   <div key={d.id} className="flex items-center gap-4 px-5 py-3">
                     <div className="flex-1">
                       <p className="text-sm font-medium">{d.businessName}</p>
                       <p className="text-xs text-white/30">{d.user?.email}</p>
                     </div>
-                    <span className={`badge border text-xs ${subStatusColor[d.subscriptionStatus]}`}>{d.subscriptionStatus}</span>
+                    <span className={`badge border text-xs ${subStatusColor[d.subscription?.status]}`}>{d.subscription?.status}</span>
                     <button onClick={() => setActivatingDealer(d)} className="btn-primary !px-3 !py-1.5 !text-xs">Renew</button>
                   </div>
                 ))
@@ -182,15 +192,15 @@ export default function SuperAdminPage() {
                     {d._count?.cars} cars · {d._count?.orders} orders · Joined {new Date(d.createdAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
-                <span className={`badge border text-xs shrink-0 ${subStatusColor[d.subscriptionStatus]}`}>{d.subscriptionStatus}</span>
+                <span className={`badge border text-xs shrink-0 ${subStatusColor[d.subscription?.status]}`}>{d.subscription?.status}</span>
                 <div className="flex gap-1 shrink-0">
-                  {d.subscriptionStatus !== 'ACTIVE' && (
+                  {d.subscription?.status !== 'ACTIVE' && (
                     <button onClick={() => setActivatingDealer(d)}
                       className="p-2 text-green-400 hover:bg-green-500/10 rounded-lg transition-colors" title="Activate">
                       <CheckCircle size={15} />
                     </button>
                   )}
-                  {d.subscriptionStatus !== 'SUSPENDED' && (
+                  {d.subscription?.status !== 'SUSPENDED' && (
                     <button onClick={() => { if (confirm('Suspend this dealer?')) suspendDealer(d.id); }}
                       className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors" title="Suspend">
                       <XCircle size={15} />
