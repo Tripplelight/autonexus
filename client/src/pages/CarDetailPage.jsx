@@ -26,10 +26,10 @@ const confidenceColor = {
 };
 
 const SpecCard = ({ icon, label, value }) => (
-  <div className="flex items-center gap-3 p-3 bg-dark-700 rounded-xl border border-white/5">
+  <div className="flex items-center gap-3 p-3 bg-dark-700 rounded-xl border border-white/5 overflow-hidden">
     <span className="text-brand-400 shrink-0">{icon}</span>
-    <div className="min-w-0">
-      <p className="text-xs text-white/30">{label}</p>
+    <div className="min-w-0 flex-1 overflow-hidden">
+      <p className="text-xs text-white/30 truncate">{label}</p>
       <p className="text-sm font-medium text-white truncate">{value}</p>
     </div>
   </div>
