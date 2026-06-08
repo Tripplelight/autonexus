@@ -42,16 +42,15 @@ export default function ChatWidget() {
   return (
     <>
       {/* Toggle Button */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-brand-500 hover:bg-brand-600 text-white shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
-        aria-label="Open AI Chat"
-      >
-        {open ? <X size={22} /> : <MessageCircle size={22} />}
-        {!open && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-dark-900 animate-pulse" />
-        )}
-      </button>
+    <button
+      onClick={() => setOpen(!open)}
+      className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-brand-500 hover:bg-brand-600 text-white shadow-2xl flex items-center justify-center transition-colors duration-200 active:scale-95 transform-gpu isolate"
+    >
+      {open ? <X size={22} /> : <MessageCircle size={22} />}
+      {!open && (
+        <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-dark-900" />
+      )}
+    </button>
 
       {/* Chat Window */}
       {open && (
