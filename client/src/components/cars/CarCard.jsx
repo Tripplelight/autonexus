@@ -20,17 +20,17 @@ export default function CarCard({ car, isFavorited = false }) {
 
   return (
     <div className="card group">
-      <div className="relative overflow-hidden aspect-[16/10]">
-        <img src={image} alt={`${car.make} ${car.model}`}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          onError={e => { e.target.src = 'https://via.placeholder.com/400x250/1a1a1a/444?text=No+Image'; }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent" />
+      <div className="relative overflow-hidden aspect-[16/10] transform-gpu isolate">
+  <img src={image} alt={`${car.make} ${car.model}`}
+    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 transform-gpu"
+    onError={e => { e.target.src = 'https://via.placeholder.com/400x250/1a1a1a/444?text=No+Image'; }}
+  />
+  <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent" />
         {car.featured && <span className="absolute top-3 left-3 badge bg-brand-500/20 text-brand-400">⭐ Featured</span>}
         <span className={`absolute top-3 right-3 badge ${conditionColor[car.condition]}`}>{car.condition}</span>
         {token && (
           <button onClick={(e) => { e.preventDefault(); toggleFav(); }}
-            className={`absolute bottom-3 right-3 p-2 rounded-full bg-dark-800/80 backdrop-blur-sm border border-white/10 transition-colors hover:border-brand-500 ${isFavorited ? 'text-brand-500' : 'text-white/40'}`}>
+            className={`absolute bottom-3 right-3 p-2 rounded-full bg-dark-800 border-white/10 transition-colors hover:border-brand-500 ${isFavorited ? 'text-brand-500' : 'text-white/40'}`}>
             <Heart size={15} fill={isFavorited ? 'currentColor' : 'none'} />
           </button>
         )}
