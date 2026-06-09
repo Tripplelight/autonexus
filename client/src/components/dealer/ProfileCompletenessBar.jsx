@@ -53,9 +53,10 @@ export default function ProfileCompletenessBar({ profile }) {
           {missing.length > 3 && (
             <span className="text-xs text-white/30">+{missing.length - 3} more</span>
           )}
-          <Link to="/account"
-            className="ml-auto text-xs text-brand-400 hover:text-brand-300 flex items-center gap-0.5 transition-colors">
-            Complete <ChevronRight size={12} />
+          <Link to="/dealer/settings">
+            <span className="ml-auto text-xs text-brand-400 hover:text-brand-300 flex items-center gap-0.5 transition-colors">
+              Complete <ChevronRight size={12} />
+            </span>
           </Link>
         </div>
       )}

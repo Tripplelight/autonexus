@@ -7,6 +7,7 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
 import CarsPage from './pages/CarsPage';
 import CarDetailPage from './pages/CarDetailPage';
+import DealerSettingsPage from './pages/DealerSettingsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AccountPage from './pages/AccountPage';

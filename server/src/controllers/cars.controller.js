@@ -69,7 +69,22 @@ export const getCars = async (req, res, next) => {
 
 export const getCarById = async (req, res, next) => {
   try {
-    const car = await prisma.car.findUnique({ where: { id: req.params.id } });
+    const car = await prisma.car.findUnique({
+      where: { id: req.params.id },
+      include: {
+        dealer: {
+          select: {
+            id: true,
+            businessName: true,
+            location: true,
+            phone: true,
+            whatsapp: true,
+            logo: true,
+            description: true,
+          }
+        }
+      }
+    });
     if (!car) return res.status(404).json({ message: 'Car not found' });
     res.json(car);
   } catch (err) { next(err); }

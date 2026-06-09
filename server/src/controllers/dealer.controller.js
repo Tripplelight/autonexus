@@ -59,8 +59,12 @@ export const getDealerProfile = async (req, res, next) => {
 // ── Update dealer profile ─────────────────────────────────────────────────────
 export const updateDealerProfile = async (req, res, next) => {
   try {
-    const { businessName, phone, location, kraPin, description } = req.body;
+    const {
+      businessName, phone, location, kraPin, description,
+      whatsapp, bankName, bankAccountName, bankAccountNumber
+    } = req.body;
     const logo = req.file?.path;
+
     const dealer = await prisma.dealer.update({
       where: { userId: req.user.id },
       data: {
@@ -69,7 +73,11 @@ export const updateDealerProfile = async (req, res, next) => {
         ...(location && { location }),
         ...(kraPin && { kraPin }),
         ...(description && { description }),
-        ...(logo && { logo })
+        ...(logo && { logo }),
+        ...(whatsapp !== undefined && { whatsapp }),
+        ...(bankName !== undefined && { bankName }),
+        ...(bankAccountName !== undefined && { bankAccountName }),
+        ...(bankAccountNumber !== undefined && { bankAccountNumber }),
       }
     });
     res.json(dealer);

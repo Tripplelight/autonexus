@@ -386,11 +386,17 @@ export default function CarDetailPage() {
                 </div>
 
                 {/* WhatsApp */}
-                <a href={`https://wa.me/${import.meta.env.VITE_DEALER_WHATSAPP || '254700000000'}?text=Hi! I'm interested in the ${car.year} ${car.make} ${car.model} listed at KES ${car.price?.toLocaleString()} on AutoNexus.`}
+                <a
+                  href={`https://wa.me/${
+                    car.dealer?.whatsapp
+                      ? car.dealer.whatsapp.replace(/\D/g, '')          // use dealer's own number
+                      : import.meta.env.VITE_DEALER_WHATSAPP || '254700000000'  // fallback
+                  }?text=Hi! I'm interested in the ${car.year} ${car.make} ${car.model} listed at KES ${car.price?.toLocaleString()} on AutoNexus.`}
                   target="_blank" rel="noopener noreferrer"
-                  className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-green-400 border border-green-500/20 rounded-xl py-3 hover:bg-green-500/10 transition-colors">
+                  className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-green-400 border border-green-500/20 rounded-xl py-3 hover:bg-green-500/10 transition-colors"
+                >
                   <Phone size={15} /> Chat on WhatsApp
-                </a>
+                </a>  
               </div>
 
               {/* Virtual Test Drive desktop */}
