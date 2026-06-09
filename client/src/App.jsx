@@ -56,6 +56,7 @@ export default function App() {
               <Route path="/dealer/onboarding" element={<DealerOnboardingPage />} />
               <Route path="/dealer/dashboard" element={<DealerDashboardPage />} />
               <Route path="/dealer/subscription" element={<DealerSubscriptionPage />} />
+              <Route path="/dealer/settings" element={<DealerSettingsPage />} /> 
             </Route>
 
             {/* Super Admin */}
