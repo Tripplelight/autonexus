@@ -45,7 +45,7 @@ model Dealer {
   description       String?
   whatsapp          String?
   bankName          String?
-  bankAccountname   String?
+  bankAccountName   String?
   bankAccountNumber String?
   subscriptionStatus SubscriptionStatus @default(TRIAL)
   trialEndsAt      DateTime
