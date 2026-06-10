@@ -39,18 +39,21 @@ export const getCars = async (req, res, next) => {
     if (minYear || maxYear) where.year = {};
     if (minYear) where.year.gte = parseInt(minYear);
     if (maxYear) where.year.lte = parseInt(maxYear);
+    const andConditions = [{ OR: activeDealerVisibility() }];
+
     if (search) {
-      where.OR = [
-        { make: { contains: search, mode: 'insensitive' } },
-        { model: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
+      andConditions.push({
+        OR: [
+          { make: { contains: search, mode: 'insensitive' } },
+          { model: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ]
+      });
     }
 
     // Hide cars from dealers whose subscription has lapsed (house listings always
-    // show). Kept under AND so it composes with the search OR above rather than
-    // overwriting it.
-    where.AND = [{ OR: activeDealerVisibility() }];
+    // Compose all AND conditions: dealer visibility + optional search
+    where.AND = andConditions;
 
     const orderBy = sort === 'price_asc' ? { price: 'asc' }
       : sort === 'price_desc' ? { price: 'desc' }
