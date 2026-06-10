@@ -4,7 +4,7 @@ const FROM_EMAIL = process.env.FROM_EMAIL || 'AutoNexus <noreply@autonexus.com>'
 const DEALER_EMAIL = process.env.DEALER_EMAIL || 'admin@autonexus.com';
 const CLIENT_URL = process.env.CLIENT_URL || 'https://autonexus-six.vercel.app';
 
-const sendEmail = async ({ to, subject, html }) => {
+export const sendEmail = async ({ to, subject, html }) => {
   if (!RESEND_API_KEY) {
     console.log(`[EMAIL SKIPPED] No RESEND_API_KEY. Would send: "${subject}" to ${to}`);
     return;

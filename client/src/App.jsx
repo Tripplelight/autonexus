@@ -50,6 +50,11 @@ export default function App() {
             <Route path="/dealers/:id" element={<DealerPublicPage />} />
             <Route path="/favorites" element={<PrivateRoute><FavoritesPage /></PrivateRoute>} />
             <Route path="/account" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/careers" element={<CareersPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
 
             {/* Dealer */}
             <Route element={<DealerProtectedRoute />}>

@@ -15,6 +15,8 @@ import dealerRoutes from './routes/dealers.js';
 import paymentsRouter from './routes/payments.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { runRenewalReminders } from './jobs/renewalReminder.js';
+import contactRoutes from './routes/contact.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,6 +39,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/contact', contactRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dealers', dealerRoutes);
 app.use('/api/payments', paymentsRouter);

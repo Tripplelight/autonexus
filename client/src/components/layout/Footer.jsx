@@ -16,6 +16,7 @@ export default function Footer() {
             </div>
             <p className="text-sm text-white/40 leading-relaxed">Your AI-powered gateway to the perfect car. Trusted by thousands across East Africa.</p>
           </div>
+
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Browse</h4>
             <div className="space-y-2 text-sm text-white/40">
@@ -25,6 +26,7 @@ export default function Footer() {
               <Link to="/cars?condition=NEW" className="block hover:text-white transition-colors">New Arrivals</Link>
             </div>
           </div>
+
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Dealers</h4>
             <div className="space-y-2 text-sm text-white/40">
@@ -32,22 +34,25 @@ export default function Footer() {
               <Link to="/login" className="block hover:text-white transition-colors">Dealer Login</Link>
             </div>
           </div>
+
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
             <div className="space-y-2 text-sm text-white/40">
-              <span className="block">About Us</span>
-              <span className="block">Contact</span>
-              <span className="block">Careers</span>
+              <Link to="/about" className="block hover:text-white transition-colors">About Us</Link>
+              <Link to="/contact" className="block hover:text-white transition-colors">Contact</Link>
+              <Link to="/careers" className="block hover:text-white transition-colors">Careers</Link>
             </div>
           </div>
+
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
             <div className="space-y-2 text-sm text-white/40">
-              <span className="block">Privacy Policy</span>
-              <span className="block">Terms of Service</span>
+              <Link to="/privacy-policy" className="block hover:text-white transition-colors">Privacy Policy</Link>
+              <Link to="/terms-of-service" className="block hover:text-white transition-colors">Terms of Service</Link>
             </div>
           </div>
         </div>
+
         <div className="border-t border-white/5 mt-10 pt-8 text-center text-xs text-white/20">
           © {new Date().getFullYear()} AutoNexus. Built with ❤️ in Nairobi.
         </div>
