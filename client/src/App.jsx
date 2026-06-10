@@ -1,4 +1,5 @@
 // src/App.jsx
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/authStore';
@@ -41,6 +42,12 @@ const RoleRoute = ({ children, roles }) => {
 };
 
 export default function App() {
+  const checkExpiry = useAuthStore(s => s.checkExpiry);
+
+  useEffect(() => {
+    checkExpiry();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -66,7 +73,7 @@ export default function App() {
               <Route path="/dealer/onboarding" element={<DealerOnboardingPage />} />
               <Route path="/dealer/dashboard" element={<DealerDashboardPage />} />
               <Route path="/dealer/subscription" element={<DealerSubscriptionPage />} />
-              <Route path="/dealer/settings" element={<DealerSettingsPage />} /> 
+              <Route path="/dealer/settings" element={<DealerSettingsPage />} />
             </Route>
 
             {/* Super Admin */}

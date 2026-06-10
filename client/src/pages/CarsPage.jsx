@@ -189,8 +189,8 @@ export default function CarsPage() {
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl tracking-wider">ALL VEHICLES</h1>
+        <div className="min-w-0 overflow-hidden">
+          <h1 className="font-display text-2xl sm:text-4xl tracking-wide truncate">ALL VEHICLES</h1>
           <p className="text-white/40 text-sm mt-1">{data?.total || 0} cars available</p>
         </div>
         <button onClick={() => setDrawerOpen(true)}
