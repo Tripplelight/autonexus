@@ -17,7 +17,21 @@ export const createOrder = async (req, res, next) => {
   try {
     const { carId, type, notes } = req.body;
 
-    const car = await prisma.car.findUnique({ where: { id: carId } });
+    const car = await prisma.car.findUnique({
+      where: { id: carId },
+      include: {
+        dealer: {
+          select: {
+            bankName: true,
+            bankAccountName: true,
+            bankAccountNumber: true,
+            phone: true,
+            businessName: true,
+          }
+        }
+      }
+    });
+
     if (!car || car.status !== 'AVAILABLE')
       return res.status(400).json({ message: 'Car not available' });
 
@@ -33,16 +47,25 @@ export const createOrder = async (req, res, next) => {
     sendDealerOrderNotification({ order, car, user }).catch(console.error);
     sendCustomerOrderConfirmation({ order, car, user }).catch(console.error);
 
+    // Use dealer's own bank details if set, otherwise fall back to platform details
+    const dealer = car.dealer;
+    const bankName = dealer?.bankName || process.env.BANK_NAME || 'Equity Bank Kenya';
+    const accountName = dealer?.bankAccountName || process.env.BANK_ACCOUNT_NAME || 'AutoNexus Limited';
+    const accountNumber = dealer?.bankAccountNumber || process.env.BANK_ACCOUNT_NUMBER || '0123456789';
+    const contactEmail = process.env.DEALER_EMAIL || 'admin@autonexus.com';
+
     res.status(201).json({
       order,
       bankDetails: type !== 'INQUIRY' ? {
-        ...BANK_DETAILS,
+        bankName,
+        accountName,
+        accountNumber,
         amount,
         reference: `AN-${order.id.slice(0, 8).toUpperCase()}`,
         instructions: [
           `Transfer KES ${amount.toLocaleString()} to the account below`,
           `Use reference: AN-${order.id.slice(0, 8).toUpperCase()}`,
-          `Send proof of payment to ${process.env.DEALER_EMAIL || 'admin@autonexus.com'}`,
+          `Send proof of payment to ${contactEmail}`,
           'Your reservation will be confirmed within 24 hours'
         ]
       } : null

@@ -75,34 +75,65 @@ export const chat = async (req, res, next) => {
 // ── Price Prediction ──────────────────────────────────────────────────────────
 export const predictPrice = async (req, res, next) => {
   try {
-    const { make, model, year, mileage, condition, bodyType, fuel, transmission } = req.body;
+    const { make, model, year, mileage, condition, bodyType, fuel, transmission, carId } = req.body;
     if (!make || !model || !year) return res.status(400).json({ message: 'make, model and year are required' });
 
-    const prompt = `You are an automotive pricing expert specializing in the Kenyan and East African used car market.
-Analyze this vehicle and estimate its current fair market price in KES (Kenyan Shillings):
+    // Fetch full car details if carId provided
+    let extraContext = '';
+    if (carId) {
+      const car = await prisma.car.findUnique({
+        where: { id: carId },
+        select: { engine: true, horsepower: true, color: true, description: true, price: true }
+      });
+      if (car) {
+        extraContext = `
+Engine: ${car.engine || 'Unknown'}
+Horsepower: ${car.horsepower ? car.horsepower + 'hp' : 'Unknown'}
+Color: ${car.color || 'Unknown'}
+Description: ${car.description || 'None'}
+Listed Price: KES ${car.price?.toLocaleString()}`;
+      }
+    }
+
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - parseInt(year);
+
+    const prompt = `You are a Kenyan used car market expert with deep knowledge of vehicle pricing in Nairobi and East Africa.
+
+Analyze this vehicle and provide a realistic market price estimate in KES (Kenyan Shillings):
 
 Vehicle: ${year} ${make} ${model}
+Age: ${age} years
 Mileage: ${mileage ? Number(mileage).toLocaleString() + ' km' : 'Unknown'}
 Condition: ${condition || 'USED'}
 Body Type: ${bodyType || 'Unknown'}
 Fuel: ${fuel || 'Unknown'}
-Transmission: ${transmission || 'Unknown'}
+Transmission: ${transmission || 'Unknown'}${extraContext}
 
-Consider: import duty, local demand, depreciation, spare parts availability in Kenya, and current market trends.
+Key factors to consider for the Kenyan market:
+- Import duty and excise duty significantly inflate prices for newer/larger vehicles
+- Toyota, Subaru, and Nissan hold value better than European brands due to spare parts availability
+- High mileage (100k+ km) significantly drops value
+- Diesel engines command a premium for commercial/off-road use
+- Local Kenyan prices are typically 20-40% higher than Japanese auction prices after duty
+- Land Cruisers, Harriers, Premiums command premium due to local demand
+- Be realistic and conservative — do not overestimate
+
+IMPORTANT: All prices must be in KES. A 2022 Toyota Land Cruiser in Kenya realistically sells for KES 8M-15M depending on variant. A 2018 Toyota Harrier is around KES 3.5M-5M. Calibrate accordingly.
 
 Respond ONLY with a valid JSON object, no markdown, no text outside the JSON:
 {
-  "minPrice": <number>,
-  "maxPrice": <number>,
-  "fairPrice": <number>,
+  "minPrice": <number in KES>,
+  "maxPrice": <number in KES>,
+  "fairPrice": <number in KES>,
   "confidence": "<low|medium|high>",
-  "reasoning": "<1-2 sentence explanation of key pricing factors>"
+  "reasoning": "<2-3 sentence explanation focusing on Kenya market factors>"
 }`;
 
     const response = await groq.chat.completions.create({
       model: MODEL,
-      max_tokens: 300,
-      temperature: 0.2,
+      max_tokens: 400,
+      temperature: 0.1,
       messages: [{ role: 'user', content: prompt }]
     });
 
@@ -177,7 +208,7 @@ Vehicle Details:
 - Color: ${car.color}
 - Description: ${car.description}
 
-Simulate an immersive virtual test drive. Answer questions about performance, comfort, handling, value for money in the Kenyan market, and suitability for different use cases. Be enthusiastic but honest. Never fabricate specs. Keep answers under 130 words.`;
+Simulate an immersive virtual test drive. Answer questions about performance, comfort, handling, value for money in the Kenyan market, and suitability for different use cases. Be enthusiastic but honest. I really insist on honesty Never fabricate specs. Keep answers under 130 words.`;
 
     const recentHistory = history.slice(-8).map(m => ({
       role: m.role.toLowerCase() === 'assistant' ? 'assistant' : 'user',

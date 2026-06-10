@@ -68,10 +68,26 @@ export default function DealerSettingsPage() {
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: () => {
-      const formData = new FormData();
-      Object.entries(form).forEach(([k, v]) => { if (v !== undefined) formData.append(k, v); });
-      return dealerApi.updateProfile(formData);
-    },
+  const formData = new FormData();
+
+  // Normalize WhatsApp: 0712345678 → 254712345678
+  const normalizeWhatsApp = (num) => {
+    if (!num) return num;
+    const cleaned = num.replace(/\s|\+/g, '');
+    if (cleaned.startsWith('0')) return '254' + cleaned.slice(1);
+    return cleaned;
+  };
+
+  Object.entries(form).forEach(([k, v]) => {
+    if (k === 'whatsapp') {
+      formData.append(k, normalizeWhatsApp(v));
+    } else if (v !== undefined) {
+      formData.append(k, v);
+    }
+  });
+
+  return dealerApi.updateProfile(formData);
+},
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dealer-profile'] });
       setSaved(true);
@@ -92,11 +108,17 @@ export default function DealerSettingsPage() {
     if (!form.businessName.trim()) errs.businessName = 'Required';
     if (!form.phone.trim()) errs.phone = 'Required';
     if (!form.location.trim()) errs.location = 'Required';
-    if (form.whatsapp && !/^\+?\d{9,15}$/.test(form.whatsapp.replace(/\s/g, '')))
-      errs.whatsapp = 'Invalid number (e.g. +254712345678)';
+
+    if (form.whatsapp) {
+      const raw = form.whatsapp.replace(/\s/g, '');
+      if (!/^\+?\d{9,15}$/.test(raw)) {
+        errs.whatsapp = 'Invalid number';
+      }
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  };
+   };
 
   const handleSave = () => {
     if (validate()) save();

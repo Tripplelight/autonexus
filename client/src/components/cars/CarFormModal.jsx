@@ -118,14 +118,18 @@ export default function CarFormModal({ car, isOpen, onClose, onSuccess }) {
     onError: (err) => setError(err.message || 'Something went wrong')
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.make || !form.model || !form.year || !form.price) {
-      setError('Make, model, year and price are required');
-      return;
-    }
-    setError('');
-    mutate();
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (!form.make || !form.model || !form.year || !form.price) {
+        setError('Make, model, year and price are required');
+        return;
+      }
+      if (Number(form.price) < 50000 || Number(form.price) > 50000000) {
+        setError('Price must be between KES 50,000 and KES 50,000,000');
+        return;
+      }
+      setError('');
+      mutate();
   };
 
   if (!shouldRender) return null;
@@ -169,7 +173,12 @@ export default function CarFormModal({ car, isOpen, onClose, onSuccess }) {
               <Input value={form.year} onChange={set('year')} placeholder="2022" type="number" required />
             </FormField>
             <FormField label="Price (KES)" required>
-              <Input value={form.price} onChange={set('price')} placeholder="4500000" type="number" required />
+              <Input value={form.price} onChange={set('price')} placeholder="4,500,000" type="number" required />
+              {form.price && (Number(form.price) < 50000 || Number(form.price) > 50000000) && (
+                <p className="text-xs text-red-400 mt-1">
+                  Price must be between KES 50,000 and KES 50,000,000
+                </p>
+              )}
             </FormField>
             <FormField label="Mileage (km)">
               <Input value={form.mileage} onChange={set('mileage')} placeholder="35000" type="number" />

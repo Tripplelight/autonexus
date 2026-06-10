@@ -36,7 +36,9 @@ export const carRules = [
   body('model').trim().notEmpty().withMessage('Model is required'),
   body('year').isInt({ min: 1990, max: new Date().getFullYear() + 1 })
     .withMessage('Enter a valid year'),
-  body('price').isFloat({ min: 1 }).withMessage('Enter a valid price'),
+  body('price')
+    .isFloat({ min: 50000 }).withMessage('Price must be at least KES 50,000')
+    .isFloat({ max: 50000000 }).withMessage('Price cannot exceed KES 50,000,000'),
   body('mileage').isInt({ min: 0 }).withMessage('Enter a valid mileage'),
 ];
 

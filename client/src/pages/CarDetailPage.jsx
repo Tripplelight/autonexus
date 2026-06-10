@@ -122,6 +122,7 @@ export default function CarDetailPage() {
     setLoadingPrice(true);
     try {
       const res = await aiApi.predictPrice({
+        carId: id,
         make: car.make, model: car.model, year: car.year,
         mileage: car.mileage, condition: car.condition,
         bodyType: car.bodyType, fuel: car.fuel, transmission: car.transmission
