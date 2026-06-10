@@ -392,7 +392,7 @@ export default function CarDetailPage() {
                     car.dealer?.whatsapp
                       ? car.dealer.whatsapp.replace(/\D/g, '')          // use dealer's own number
                       : import.meta.env.VITE_DEALER_WHATSAPP || '254700000000'  // fallback
-                  }?text=Hi! I'm interested in the ${car.year} ${car.make} ${car.model} listed at KES ${car.price?.toLocaleString()} on AutoNexus.`}
+                  }?text=${encodeURIComponent(`Hi! I'm interested in the ${car.year} ${car.make} ${car.model} listed at KES ${car.price?.toLocaleString()} on AutoNexus.\n\nView listing: ${window.location.href}`)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-green-400 border border-green-500/20 rounded-xl py-3 hover:bg-green-500/10 transition-colors"
                 >
