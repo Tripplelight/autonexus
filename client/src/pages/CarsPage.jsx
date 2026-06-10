@@ -1,5 +1,5 @@
 // src/pages/CarsPage.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { SlidersHorizontal, X, Search, ChevronDown } from 'lucide-react';
@@ -145,6 +145,11 @@ export default function CarsPage() {
     search: searchParams.get('search') || '',
     page: 1
   });
+ 
+  useEffect(() => {
+  const search = searchParams.get('search') || '';
+  setFilters(prev => ({ ...prev, search, page: 1 }));
+}, [searchParams]);
 
   useSEO({ title: "Browse Cars", description: "Browse hundreds of verified cars in Nairobi. Filter by make, body type, fuel, price and more." });
 
