@@ -167,7 +167,10 @@ export const deleteCar = async (req, res, next) => {
     const canManage = await ensureCanManageCar(req, car);
     if (!canManage) return res.status(403).json({ message: 'You can only delete your own cars' });
 
+    // Delete related orders first
+    await prisma.order.deleteMany({ where: { carId: req.params.id } });
     await prisma.car.delete({ where: { id: req.params.id } });
+
     res.json({ message: 'Car deleted' });
   } catch (err) { next(err); }
 };
