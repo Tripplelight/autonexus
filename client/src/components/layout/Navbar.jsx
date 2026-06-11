@@ -140,7 +140,7 @@ export default function Navbar() {
 
       {/* Full-screen mobile menu overlay */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[60] bg-dark-900 flex flex-col px-6 py-6 md:hidden">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, backgroundColor: '#0a0a0f', display: 'flex', flexDirection: 'column', padding: '24px' }}>
           {/* Top bar */}
           <div className="flex items-center justify-between mb-10">
             <Link to="/" onClick={close} className="flex items-center gap-2">
