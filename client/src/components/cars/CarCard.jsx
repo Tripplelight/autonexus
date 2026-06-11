@@ -20,7 +20,7 @@ export default function CarCard({ car, isFavorited = false }) {
 
   return (
     <div className="card group">
-      <div className="relative overflow-hidden aspect-[16/10]">
+      <div className="relative aspect-[16/10] overflow-hidden">
         <img
           src={image}
           alt={`${car.make} ${car.model}`}
