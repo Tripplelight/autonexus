@@ -24,7 +24,7 @@ export default function CarCard({ car, isFavorited = false }) {
         <img
           src={image}
           alt={`${car.make} ${car.model}`}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover md:group-hover:scale-105 md:transition-transform md:duration-500"
           onError={e => { e.target.src = 'https://via.placeholder.com/400x250/1a1a1a/444?text=No+Image'; }}
         />
   <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 via-transparent to-transparent" />

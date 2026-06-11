@@ -44,6 +44,23 @@ export default function Navbar() {
 
   return (
     <>
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeInBg {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .menu-panel {
+          animation: slideInRight 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+        }
+        .menu-backdrop {
+          animation: fadeInBg 0.3s ease forwards;
+        }
+      `}</style>
+
       <nav className="sticky top-0 z-50 bg-dark-900/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
 
@@ -143,98 +160,126 @@ export default function Navbar() {
         )}
       </nav>
 
-      {/* Full-screen overlay — 100% inline styles, no Tailwind */}
-      {menuOpen && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          width: '100vw', height: '100vh',
-          zIndex: 9999,
-          background: 'rgba(8, 8, 12, 0.97)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          display: 'flex', flexDirection: 'column',
-          padding: '24px 28px',
-          boxSizing: 'border-box',
+      {/* Mobile menu */}
+  {menuOpen && (
+    <>
+      {/* Backdrop */}
+      <div
+        className="menu-backdrop"
+        onClick={close}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 9998,
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(3px)',
+          WebkitBackdropFilter: 'blur(3px)',
+        }}
+      />
+
+    {/* Slide panel */}
+    <div
+      className="menu-panel"
+      style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0,
+        width: '72%',
+        zIndex: 9999,
+        background: 'rgba(12, 12, 16, 0.82)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        borderLeft: '0.5px solid rgba(255,255,255,0.08)',
+        display: 'flex', flexDirection: 'column',
+        padding: '28px 20px 24px',
+        boxSizing: 'border-box',
+        overflowY: 'auto',
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+        <Link to="/" onClick={close} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+          <div style={{ width: '30px', height: '30px', background: '#f97316', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Car size={14} color="white" />
+          </div>
+          <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 700, letterSpacing: '3px', color: 'white' }}>AUTONEXUS</span>
+        </Link>
+        <button onClick={close} style={{
+          width: '32px', height: '32px', borderRadius: '8px',
+          background: 'rgba(255,255,255,0.06)',
+          border: '0.5px solid rgba(255,255,255,0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: 'rgba(255,255,255,0.5)'
         }}>
-          {/* Top bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '48px' }}>
-            <Link to="/" onClick={close} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-              <div style={{ width: '32px', height: '32px', background: '#f97316', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Car size={16} color="white" />
-              </div>
-              <span style={{ fontFamily: 'monospace', fontSize: '16px', fontWeight: 700, letterSpacing: '3px', color: 'white' }}>AUTONEXUS</span>
-            </Link>
-            <button onClick={close} style={{
-              width: '36px', height: '36px', borderRadius: '10px',
-              background: 'rgba(255,255,255,0.06)', border: '0.5px solid rgba(255,255,255,0.12)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: 'rgba(255,255,255,0.5)'
-            }}>
-              <X size={18} />
-            </button>
-          </div>
+          <X size={15} />
+        </button>
+      </div>
 
-          {/* Main links */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {mainLinks.map(({ to, label }, i) => (
-              <NavLink key={to} to={to} onClick={close} style={({ isActive }) => ({
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '18px 0',
-                borderBottom: '0.5px solid rgba(255,255,255,0.06)',
-                textDecoration: 'none',
-                color: isActive ? '#f97316' : 'white',
-              })}>
-                <span style={{ fontSize: '30px', fontWeight: 700, letterSpacing: '-0.5px', lineHeight: 1 }}>{label}</span>
-                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '18px' }}>→</span>
-              </NavLink>
-            ))}
+      {/* Main links */}
+      <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '4px', marginBottom: '32px' }}>
+        {mainLinks.map(({ to, label }) => (
+          <NavLink key={to} to={to} onClick={close}
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '15px 0',
+              borderBottom: '0.5px solid rgba(255,255,255,0.05)',
+              textDecoration: 'none',
+              color: isActive ? '#f97316' : 'rgba(255,255,255,0.9)',
+            })}>
+            <span style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.3px' }}>{label}</span>
+            <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '13px' }}>→</span>
+          </NavLink>
+        ))}
 
-            {/* Secondary */}
-            <div style={{ display: 'flex', gap: '24px', marginTop: '28px' }}>
-              <Link to="/about" onClick={close} style={{ color: 'rgba(255,255,255,0.25)', fontSize: '13px', textDecoration: 'none' }}>About Us</Link>
-              <Link to="/contact" onClick={close} style={{ color: 'rgba(255,255,255,0.25)', fontSize: '13px', textDecoration: 'none' }}>Contact</Link>
-            </div>
-          </div>
-
-          {/* Bottom */}
-          <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {!token && (
-              <Link to="/become-a-dealer" onClick={close} style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '12px 16px', borderRadius: '12px',
-                border: '0.5px solid rgba(249,115,22,0.25)',
-                background: 'rgba(249,115,22,0.06)',
-                textDecoration: 'none', fontSize: '13px', color: '#f97316'
-              }}>
-                List Your Cars → <span style={{ fontWeight: 600 }}>Become a Dealer</span>
-              </Link>
-            )}
-            {token ? (
-              <button onClick={handleLogout} style={{
-                width: '100%', padding: '13px', borderRadius: '12px',
-                background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.4)', fontSize: '13px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-              }}>
-                <LogOut size={14} /> Sign out
-              </button>
-            ) : (
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <Link to="/login" onClick={close} style={{
-                  flex: 1, padding: '13px', borderRadius: '12px', textAlign: 'center',
-                  border: '0.5px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)',
-                  textDecoration: 'none', fontSize: '13px'
-                }}>Sign in</Link>
-                <Link to="/register" onClick={close} style={{
-                  flex: 1, padding: '13px', borderRadius: '12px', textAlign: 'center',
-                  background: '#f97316', color: 'white', fontWeight: 600,
-                  textDecoration: 'none', fontSize: '13px'
-                }}>Get Started</Link>
-              </div>
-            )}
-          </div>
+        {/* Secondary links */}
+        <div style={{ display: 'flex',flexDirection: 'column', gap: '20px', marginTop: '20px', borderTop: '0.5px solid rgba(255,255,255,0.05)', paddingTop: '16px'}}>
+          <Link to="/about" onClick={close} style={{ color: 'rgba(255,255,255,0.2)', fontSize: '14px', textDecoration: 'none' }}>About Us</Link>
+          <Link to="/contact" onClick={close} style={{ color: 'rgba(255,255,255,0.2)', fontSize: '14px', textDecoration: 'none' }}>Contact</Link>
         </div>
-      )}
+      </div>
+
+      {/* Bottom */}
+      <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', paddingTop: '20px', marginTop:'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {!token && (
+          <Link to="/become-a-dealer" onClick={close} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '11px 14px', borderRadius: '10px',
+            border: '0.5px solid rgba(249,115,22,0.3)',
+            background: 'rgba(249,115,22,0.08)',
+            textDecoration: 'none', fontSize: '12px', color: '#f97316',
+            fontWeight: 500
+          }}>
+            Become a Dealer →
+          </Link>
+        )}
+        {token ? (
+          <button onClick={handleLogout} style={{
+            width: '100%', padding: '12px', borderRadius: '10px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '0.5px solid rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.35)', fontSize: '12px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+          }}>
+            <LogOut size={13} /> Sign out
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Link to="/login" onClick={close} style={{
+              flex: 1, padding: '12px', borderRadius: '10px', textAlign: 'center',
+              background: 'rgba(255,255,255,0.07)',
+              border: '0.5px solid rgba(255,255,255,0.12)',
+              color: 'white', fontWeight: 600,
+              textDecoration: 'none', fontSize: '12px',
+            }}>Sign in</Link>
+            <Link to="/register" onClick={close} style={{
+              flex: 1, padding: '12px', borderRadius: '10px', textAlign: 'center',
+              background: 'linear-gradient(135deg, #f97316, #ea580c)',
+              color: 'white', fontWeight: 700,
+              textDecoration: 'none', fontSize: '12px',
+              boxShadow: '0 4px 16px rgba(249,115,22,0.4)',
+            }}>Get Started</Link>
+          </div>
+        )}
+      </div>
+    </div>
+  </> 
+  )}
     </>
   );
 }
