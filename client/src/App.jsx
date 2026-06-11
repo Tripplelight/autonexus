@@ -20,6 +20,7 @@ import DealerSubscriptionPage from './pages/DealerSubscriptionPage';
 import DealerPublicPage from './pages/DealerPublicPage';
 import FavoritesPage from './pages/FavoritesPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ScrollToTop from './components/ScrollToTop';
 import DealerProtectedRoute from './components/protected/DealerProtectedRoute';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
@@ -51,6 +52,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
