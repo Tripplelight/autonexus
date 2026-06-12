@@ -233,3 +233,21 @@ export const suspendDealer = async (req, res, next) => {
     next(err);
   }
 };
+
+// ── SUPER ADMIN: Get all payment records ──────────────────────────────────────
+export const getAllPayments = async (req, res, next) => {
+  try {
+    const payments = await prisma.subscription.findMany({
+      include: {
+        dealer: {
+          select: {
+            businessName: true,
+            user: { select: { email: true } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(payments);
+  } catch (err) { next(err); }
+};

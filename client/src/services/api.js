@@ -66,6 +66,7 @@ export const dealerApi = {
   getMyOrders: () => api.get('/dealers/my-orders'),
   getSubscription: () => api.get('/dealers/subscription'),
   renewSubscription: (data) => api.patch('/dealers/subscription', data),
+  getAllPayments: () => api.get('/dealers/payments/all').then(r => r.data),
   // Super admin
   getAll: () => api.get('/dealers'),
   updateSubscription: (dealerId, data) => api.patch(`/dealers/${dealerId}/subscription`, data),

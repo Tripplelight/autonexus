@@ -1,8 +1,8 @@
 // src/pages/DealerSettingsPage.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { User, Phone, MapPin, FileText, CreditCard, MessageCircle, ArrowLeft, Save, Check } from 'lucide-react';
+import { User, Phone, MapPin, FileText, CreditCard, MessageCircle, ArrowLeft, Save, Check, ImagePlus, X } from 'lucide-react';
 import { dealerApi } from '../services/api';
 
 const Field = ({ label, icon, error, ...props }) => (
@@ -32,6 +32,9 @@ export default function DealerSettingsPage() {
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     businessName: '',
@@ -63,31 +66,52 @@ export default function DealerSettingsPage() {
         bankAccountName: profile.bankAccountName || '',
         bankAccountNumber: profile.bankAccountNumber || '',
       });
+      // Show existing logo if set
+      if (profile.logo) setLogoPreview(profile.logo);
     }
   }, [profile]);
 
-  const { mutate: save, isPending } = useMutation({
-    mutationFn: () => {
-  const formData = new FormData();
-
-  // Normalize WhatsApp: 0712345678 → 254712345678
-  const normalizeWhatsApp = (num) => {
-    if (!num) return num;
-    const cleaned = num.replace(/\s|\+/g, '');
-    if (cleaned.startsWith('0')) return '254' + cleaned.slice(1);
-    return cleaned;
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, logo: 'Logo must be under 2MB' }));
+      return;
+    }
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+    setErrors(prev => ({ ...prev, logo: '' }));
   };
 
-  Object.entries(form).forEach(([k, v]) => {
-    if (k === 'whatsapp') {
-      formData.append(k, normalizeWhatsApp(v));
-    } else if (v !== undefined) {
-      formData.append(k, v);
-    }
-  });
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
-  return dealerApi.updateProfile(formData);
-},
+  const { mutate: save, isPending } = useMutation({
+    mutationFn: () => {
+      const formData = new FormData();
+
+      const normalizeWhatsApp = (num) => {
+        if (!num) return num;
+        const cleaned = num.replace(/\s|\+/g, '');
+        if (cleaned.startsWith('0')) return '254' + cleaned.slice(1);
+        return cleaned;
+      };
+
+      Object.entries(form).forEach(([k, v]) => {
+        if (k === 'whatsapp') {
+          formData.append(k, normalizeWhatsApp(v));
+        } else if (v !== undefined) {
+          formData.append(k, v);
+        }
+      });
+
+      if (logoFile) formData.append('logo', logoFile);
+
+      return dealerApi.updateProfile(formData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dealer-profile'] });
       setSaved(true);
@@ -108,21 +132,15 @@ export default function DealerSettingsPage() {
     if (!form.businessName.trim()) errs.businessName = 'Required';
     if (!form.phone.trim()) errs.phone = 'Required';
     if (!form.location.trim()) errs.location = 'Required';
-
     if (form.whatsapp) {
       const raw = form.whatsapp.replace(/\s/g, '');
-      if (!/^\+?\d{9,15}$/.test(raw)) {
-        errs.whatsapp = 'Invalid number';
-      }
+      if (!/^\+?\d{9,15}$/.test(raw)) errs.whatsapp = 'Invalid number';
     }
-
     setErrors(errs);
     return Object.keys(errs).length === 0;
-   };
-
-  const handleSave = () => {
-    if (validate()) save();
   };
+
+  const handleSave = () => { if (validate()) save(); };
 
   if (isLoading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -145,6 +163,53 @@ export default function DealerSettingsPage() {
             <p className="text-xs text-white/30">Manage your profile and business details</p>
           </div>
         </div>
+
+        {/* ── Logo Upload ── */}
+        <Section title="Dealer Logo" icon={<ImagePlus size={15} />}>
+          <p className="text-xs text-white/30 -mt-1">
+            Your logo appears on your public profile and listings. Max 2MB.
+          </p>
+          <div className="flex items-center gap-4">
+            {/* Preview */}
+            <div className="w-20 h-20 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
+              ) : (
+                <ImagePlus size={24} className="text-white/20" />
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 hover:border-white/30 text-sm text-white/70 hover:text-white transition-colors"
+              >
+                <ImagePlus size={14} />
+                {logoPreview ? 'Change Logo' : 'Upload Logo'}
+              </button>
+              {logoPreview && (
+                <button
+                  type="button"
+                  onClick={removeLogo}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/20 hover:border-red-500/40 text-sm text-red-400 transition-colors"
+                >
+                  <X size={14} /> Remove
+                </button>
+              )}
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleLogoChange}
+            className="hidden"
+          />
+          {errors.logo && <p className="text-xs text-red-400">{errors.logo}</p>}
+        </Section>
 
         {/* Business Profile */}
         <Section title="Business Profile" icon={<User size={15} />}>

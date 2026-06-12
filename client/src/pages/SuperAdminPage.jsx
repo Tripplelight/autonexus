@@ -1,7 +1,7 @@
 // src/pages/SuperAdminPage.jsx
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Package, BarChart3, CheckCircle, XCircle, AlertTriangle, Shield } from 'lucide-react';
+import { Users, Package, BarChart3, CheckCircle, XCircle, AlertTriangle, Shield, CreditCard } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import { dealerApi, ordersApi } from '../services/api';
 
@@ -9,6 +9,7 @@ const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'dealers', label: 'Dealers', icon: Users },
   { id: 'orders', label: 'All Orders', icon: Package },
+  { id: 'payments', label: 'Payments', icon: CreditCard },
 ];
 
 const subStatusColor = {
@@ -16,6 +17,12 @@ const subStatusColor = {
   ACTIVE: 'text-green-400 bg-green-500/10 border-green-500/20',
   EXPIRED: 'text-red-400 bg-red-500/10 border-red-500/20',
   SUSPENDED: 'text-red-400 bg-red-500/10 border-red-500/20'
+};
+
+const paymentStatusColor = {
+  PENDING: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+  PAID: 'text-green-400 bg-green-500/10 border-green-500/20',
+  FAILED: 'text-red-400 bg-red-500/10 border-red-500/20'
 };
 
 const orderStatusColor = {
@@ -35,6 +42,11 @@ export default function SuperAdminPage() {
   const { data: dealers } = useQuery({
     queryKey: ['all-dealers'],
     queryFn: dealerApi.getAll
+  });
+
+  const { data: payments } = useQuery({
+    queryKey: ['admin-payments'],
+    queryFn: dealerApi.getAllPayments
   });
 
   const { data: orders } = useQuery({
@@ -233,6 +245,25 @@ export default function SuperAdminPage() {
                       className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"><XCircle size={15} /></button>
                   </div>
                 )}
+              </div>
+            ))
+          }
+        </div>
+      )}
+
+      {tab === 'payments' && (
+        <div className="card divide-y divide-white/5">
+          {!payments?.length ? <p className="p-12 text-white/30 text-sm text-center">No payments yet</p>
+            : payments.map(p => (
+              <div key={p.id} className="flex items-center gap-4 px-5 py-4 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{p.dealer?.businessName}</p>
+                  <p className="text-xs text-white/30">{p.dealer?.user?.email} · {p.period}</p>
+                  {p.mpesaRef && <p className="text-xs text-white/20 mt-0.5 font-mono">{p.mpesaRef}</p>}
+                </div>
+                <p className="text-sm text-brand-400 font-semibold shrink-0">KES {p.amount?.toLocaleString()}</p>
+                <span className={`badge border text-xs shrink-0 ${paymentStatusColor[p.status]}`}>{p.status}</span>
+                <p className="text-xs text-white/20 shrink-0">{new Date(p.createdAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
               </div>
             ))
           }

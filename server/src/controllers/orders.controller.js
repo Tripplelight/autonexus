@@ -122,3 +122,45 @@ export const updateOrderStatus = async (req, res, next) => {
     res.json(order);
   } catch (err) { next(err); }
 };
+
+export const dealerUpdateOrderStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+
+    if (!['CONFIRMED', 'CANCELLED'].includes(status))
+      return res.status(400).json({ message: 'Invalid status' });
+
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: { car: true, user: true }
+    });
+
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    // 🔒 Ownership check
+    const dealer = await prisma.dealer.findUnique({ where: { userId: req.user.id } });
+    if (!dealer || order.dealerId !== dealer.id)
+      return res.status(403).json({ message: 'Forbidden' });
+
+    if (order.status !== 'PENDING')
+      return res.status(400).json({ message: 'Order already actioned' });
+
+    const updated = await prisma.order.update({
+      where: { id: req.params.id },
+      data: { status }
+    });
+
+    // Mirror the same side effects as admin's updateOrderStatus
+    if (status === 'CONFIRMED' && order.type !== 'INQUIRY') {
+      await prisma.car.update({ where: { id: order.carId }, data: { status: 'RESERVED' } });
+    }
+    if (status === 'CANCELLED') {
+      await prisma.car.update({ where: { id: order.carId }, data: { status: 'AVAILABLE' } });
+    }
+
+    // Notify buyer
+    sendCustomerOrderConfirmation({ order: updated, car: order.car, user: order.user }).catch(console.error);
+
+    res.json(updated);
+  } catch (err) { next(err); }
+};

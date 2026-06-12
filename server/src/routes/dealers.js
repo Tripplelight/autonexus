@@ -7,6 +7,7 @@ import {
 } from '../controllers/dealer.controller.js';
 import { protect, adminOnly, dealerOnly, superAdminOnly } from '../middleware/auth.js';
 import { upload } from '../config/cloudinary.js';
+import { getAllPayments } from '../controllers/dealer.controller.js';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.patch('/subscription', protect, dealerOnly, updateDealerSubscription);
 router.get('/', protect, superAdminOnly, getAllDealers);
 router.patch('/:dealerId/subscription', protect, superAdminOnly, updateDealerSubscription);
 router.patch('/:dealerId/suspend', protect, superAdminOnly, suspendDealer);
+router.get('/payments/all', protect, superAdminOnly, getAllPayments);
 
 export default router;
