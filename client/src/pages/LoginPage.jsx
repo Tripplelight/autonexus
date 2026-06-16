@@ -127,10 +127,6 @@ export default function LoginPage() {
           <div className="flex justify-center">
             <GoogleLogin
               onSuccess={async (res) => {
-                if (!agreed) {
-                  setServerError('You must agree to the Terms of Service and Privacy Policy.');
-                  return;
-                }
                 try {
                   const data = await authApi.googleAuth(res.credential);
                   setAuth(data.user, data.token);
