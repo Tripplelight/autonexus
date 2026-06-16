@@ -36,7 +36,8 @@ export const carsApi = {
 export const authApi = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
-  getMe: () => api.get('/auth/me')
+  getMe: () => api.get('/auth/me'),
+  googleAuth: (credential) => api.post('/auth/google', { credential })
 };
 
 // Orders

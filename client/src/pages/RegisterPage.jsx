@@ -5,6 +5,7 @@ import { Eye, EyeOff, AlertCircle, Car, Check } from 'lucide-react';
 import { useSEO } from "../hooks/useSEO";
 import { authApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { GoogleLogin } from '@react-oauth/google';
 
 const validate = ({ name, email, password, phone }) => {
   const errors = {};
@@ -53,6 +54,7 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   useSEO({ title: "Create Account" });
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
@@ -66,6 +68,10 @@ export default function RegisterPage() {
     e.preventDefault();
     const errs = validate(form);
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (!agreed) {
+      setServerError('You must agree to the Terms of Service and Privacy Policy.');
+      return;
+    }
     setServerError(''); setLoading(true);
     try {
       const res = await authApi.register(form);
@@ -159,6 +165,52 @@ export default function RegisterPage() {
             <PasswordStrength password={form.password} />
             <FieldError msg={errors.password} />
           </div>
+         
+           {/* Agreement */}
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => setAgreed(v => !v)}
+              className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors
+                ${agreed ? 'bg-brand-500 border-brand-500' : 'border-white/20 bg-transparent'}`}
+            >
+              {agreed && <Check size={12} className="text-white" />}
+            </button>
+            <p className="text-xs text-white/40 leading-relaxed">
+              I agree to AutoNexus's{' '}
+              <Link to="/terms-of-service" className="text-brand-400 hover:underline">Terms of Service</Link>
+              {' '}and{' '}
+              <Link to="/privacy-policy" className="text-brand-400 hover:underline">Privacy Policy</Link>
+            </p>
+          </div> 
+
+          <div className="relative flex items-center gap-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-white/20 text-xs">or</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={async (res) => {
+                  if (!agreed) {
+                    setServerError('You must agree to the Terms of Service and Privacy Policy.');
+                    return;
+                  }
+                  try {
+                    const data = await authApi.googleAuth(res.credential);
+                    setAuth(data.user, data.token);
+                    navigate('/');
+                  } catch (err) {
+                    setServerError(err.message || 'Google sign-in failed');
+                  }
+                }}
+                onError={() => setServerError('Google sign-in failed')}
+                theme="filled_black"
+                shape="rectangular"
+                width="400"
+              />
+            </div>
 
           <button
             onClick={submit}

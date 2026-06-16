@@ -78,7 +78,7 @@ export default function DealerRegisterPage() {
         </div>
 
         <h1 className="font-display text-4xl tracking-wider mb-1">BECOME A DEALER</h1>
-        <p className="text-white/40 text-sm mb-2">30-day free trial · No credit card needed</p>
+        <p className="text-white/40 text-sm mb-2">Join East Africa's digital car marketplace</p>
 
         {/* Steps */}
         <div className="flex items-center gap-2 mb-8">
@@ -171,15 +171,17 @@ export default function DealerRegisterPage() {
               </div>
 
               {/* Trial info */}
-              <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4">
-                <p className="text-sm text-brand-400 font-medium mb-1">🎉 30-Day Free Trial</p>
-                <p className="text-xs text-white/40">List unlimited cars, get AI-powered listings, receive inquiries. After trial: KES 5,000/month.</p>
-              </div>
+              {import.meta.env.VITE_SUBSCRIPTIONS_ENABLED === 'true' && (
+                <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4">
+                  <p className="text-sm text-brand-400 font-medium mb-1">🎉 30-Day Free Trial</p>
+                  <p className="text-xs text-white/40">List unlimited cars, get AI-powered listings, receive inquiries. After trial: KES 5,000/month.</p>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="btn-outline flex-1">← Back</button>
                 <button onClick={submit} disabled={loading} className="btn-primary flex-1 !py-3.5">
-                  {loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating...</> : 'Start Free Trial'}
+                  {loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating...</> : 'Create Account'}
                 </button>
               </div>
             </>

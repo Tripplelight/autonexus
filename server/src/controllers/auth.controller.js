@@ -48,3 +48,42 @@ export const getMe = async (req, res, next) => {
     res.json(user);
   } catch (err) { next(err); }
 };
+
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+export const googleAuth = async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) return res.status(400).json({ message: 'No credential provided' });
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const { sub: googleId, email, name, picture } = ticket.getPayload();
+
+    // Find existing user by googleId or email
+    let user = await prisma.user.findFirst({
+      where: { OR: [{ googleId }, { email }] },
+    });
+
+    if (user) {
+      // Link googleId if they registered with email before
+      if (!user.googleId) {
+        await prisma.user.update({ where: { id: user.id }, data: { googleId } });
+      }
+    } else {
+      // Create new user
+      user = await prisma.user.create({
+        data: { name, email, googleId, phone: null },
+      });
+      sendWelcomeEmail({ user }).catch(console.error);
+    }
+
+    const { password: _, ...safe } = user;
+    res.json({ token: signToken(user.id, user.role), user: safe });
+  } catch (err) { next(err); }
+};

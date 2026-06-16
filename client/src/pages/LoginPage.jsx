@@ -5,6 +5,7 @@ import { Eye, EyeOff, AlertCircle, Car } from 'lucide-react';
 import { useSEO } from "../hooks/useSEO";
 import { authApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { GoogleLogin } from '@react-oauth/google';
 
 const validate = ({ email, password }) => {
   const errors = {};
@@ -116,6 +117,34 @@ export default function LoginPage() {
               : 'Sign In'
             }
           </button>
+
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-white/20 text-xs">or</span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={async (res) => {
+                if (!agreed) {
+                  setServerError('You must agree to the Terms of Service and Privacy Policy.');
+                  return;
+                }
+                try {
+                  const data = await authApi.googleAuth(res.credential);
+                  setAuth(data.user, data.token);
+                  navigate('/');
+                } catch (err) {
+                  setServerError(err.message || 'Google sign-in failed');
+                }
+              }}
+              onError={() => setServerError('Google sign-in failed')}
+              theme="filled_black"
+              shape="rectangular"
+              width="400"
+            />
+          </div>
 
           <p className="text-center text-sm text-white/40">
             Don't have an account?{' '}
