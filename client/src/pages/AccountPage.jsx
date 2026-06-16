@@ -122,7 +122,9 @@ function DealerAccount({ user }) {
         {[
           { label: 'Listings', value: cars.length, icon: Car, color: 'text-brand-400' },
           { label: 'Inquiries', value: orders.length, icon: Package, color: 'text-blue-400' },
-          { label: 'Days Left', value: subscription?.daysLeft ?? '—', icon: Clock, color: 'text-yellow-400' },
+          ...(import.meta.env.VITE_SUBSCRIPTIONS_ENABLED === 'true'
+            ? [{ label: 'Days Left', value: subscription?.daysLeft ?? '—', icon: Clock, color: 'text-yellow-400' }]
+            : []),
         ].map((s, i) => (
           <div key={i} className="bg-dark-800 border border-white/5 rounded-2xl p-4 text-center">
             <s.icon size={16} className={`mx-auto mb-2 ${s.color}`} />
@@ -158,6 +160,7 @@ function DealerAccount({ user }) {
       </div>
 
       {/* Subscription Status */}
+      {import.meta.env.VITE_SUBSCRIPTIONS_ENABLED === 'true' && (
       <div className="bg-dark-800 border border-white/5 rounded-2xl p-5 mb-4">
         <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
           <Calendar size={14} className="text-brand-400" /> Subscription
@@ -177,7 +180,7 @@ function DealerAccount({ user }) {
           </Link>
         </div>
       </div>
-
+      )}
       {/* Quick Links */}
       <div className="flex gap-3">
         <Link
@@ -186,12 +189,14 @@ function DealerAccount({ user }) {
         >
           Go to Dashboard
         </Link>
+        {import.meta.env.VITE_SUBSCRIPTIONS_ENABLED === 'true' && (
         <Link
           to="/dealer/subscription"
           className="flex-1 text-center text-sm border border-white/10 hover:border-white/30 py-3 rounded-xl transition-colors"
         >
           Subscription
         </Link>
+)}
       </div>
     </div>
   );
