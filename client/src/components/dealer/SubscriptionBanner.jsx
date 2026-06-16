@@ -25,6 +25,9 @@ const BANNER_CONFIG = {
 export default function SubscriptionBanner({ subscription }) {
   if (!subscription) return null;
 
+  //---SUBSCRIPTIONS DISABLED - free access---
+  if (import.meta.env.VITE_SUBSCRIPTIONS_ENABLED !== 'true') return null;
+
   const { status, daysLeft, active } = subscription;
 
   // Healthy paid subscription — nothing to warn about.

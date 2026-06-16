@@ -17,6 +17,9 @@ export const requireActiveSubscription = async (req, res, next) => {
   try {
     if (ADMIN_ROLES.includes(req.user?.role)) return next();
 
+    // ---SUBSCRIPTIONS DISABLED - free access ---
+    if (process.env.DISABLE_SUBSCRIPTIONS === 'true') return next();
+
     const dealer = await prisma.dealer.findUnique({ where: { userId: req.user.id } });
     if (!dealer) return res.status(404).json({ message: 'Dealer profile not found' });
 

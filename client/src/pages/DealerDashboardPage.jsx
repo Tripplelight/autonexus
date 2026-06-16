@@ -42,7 +42,7 @@ export default function DealerDashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dealer-orders'] }),
   });
 
-  const canEdit = !!subscription?.active;
+  const canEdit = true;
   const pendingOrders = orders.filter(o => o.status === 'PENDING');
 
   const scrollToInquiries = () => {
@@ -71,7 +71,9 @@ export default function DealerDashboardPage() {
       onClick: scrollToInquiries,
       badge: pendingOrders.length,
     },
-    { label: 'Days Left', value: subscription?.daysLeft ?? '—', icon: Clock, color: 'yellow', onClick: null },
+    ...(import.meta.env.VITE_SUBSCRIPTIONS_ENABLED === 'true'
+  ? [{ label: 'Days Left', value: subscription?.daysLeft ?? '—', icon: Clock, color: 'yellow', onClick: null }]
+  : []),
   ];
 
   const statusStyles = {
@@ -112,12 +114,14 @@ export default function DealerDashboardPage() {
               >
                 <Plus size={18} /> ADD NEW CAR
               </button>
-              <a
-                href="/dealer/subscription"
-                className="flex items-center justify-center gap-2 border border-white/20 hover:border-white/50 transition-all px-4 py-3 rounded-xl text-sm font-medium"
-              >
-                <Calendar size={16} /> Subscription
+
+              {import.meta.env.VITE_SUBSCRIPTIONS_ENABLED === 'true' && (
+                <a
+                  href="/dealer/subscription"
+                  className="flex items-center justify-center gap-2 border border-white/20 hover:border-white/50 transition-all px-4 py-3 rounded-xl text-sm font-medium">
+                  <Calendar size={16} /> Subscription
               </a>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 text-xs sm:text-sm px-4 py-3 rounded-xl self-start sm:self-auto">
