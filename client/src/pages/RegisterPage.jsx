@@ -108,7 +108,7 @@ export default function RegisterPage() {
             <label className="text-xs text-white/40 mb-1.5 block">Full Name</label>
             <input
               type="text"
-              placeholder="John Doe"
+              placeholder="Brian Mwangi"
               value={form.name}
               onChange={set('name')}
               className={`input w-full ${errors.name ? '!border-red-500/50' : ''}`}
@@ -190,7 +190,7 @@ export default function RegisterPage() {
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            <div className="flex justify-center">
+            <div className="w-full [&>div]:!w-full">
               <GoogleLogin
                 onSuccess={async (res) => {
                   if (!agreed) {
@@ -208,7 +208,8 @@ export default function RegisterPage() {
                 onError={() => setServerError('Google sign-in failed')}
                 theme="filled_black"
                 shape="rectangular"
-                width="400"
+                size="large"
+                width="100%"
               />
             </div>
 

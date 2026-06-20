@@ -1,18 +1,20 @@
-// src/routes/dealers.js
 import { Router } from 'express';
 import {
   registerDealer, getDealerProfile, updateDealerProfile,
   getDealerCars, getDealerOrders, checkSubscription,
-  getAllDealers, updateDealerSubscription, suspendDealer
+  getAllDealers, updateDealerSubscription, suspendDealer,
+  upgradeToDealer, getAllPayments
 } from '../controllers/dealer.controller.js';
-import { protect, adminOnly, dealerOnly, superAdminOnly } from '../middleware/auth.js';
+import { protect, dealerOnly, superAdminOnly } from '../middleware/auth.js';
 import { upload } from '../config/cloudinary.js';
-import { getAllPayments } from '../controllers/dealer.controller.js';
 
 const router = Router();
 
 // Public
 router.post('/register', registerDealer);
+
+// Logged-in, any role → upgrade to dealer
+router.post('/upgrade', protect, upgradeToDealer);
 
 // Dealer protected
 router.get('/profile', protect, dealerOnly, getDealerProfile);

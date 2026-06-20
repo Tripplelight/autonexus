@@ -5,6 +5,7 @@ import { Eye, EyeOff, AlertCircle, Car, Check, Building, MapPin, Phone } from 'l
 import { useAuthStore } from '../store/authStore';
 import { useSEO } from '../hooks/useSEO';
 import api from '../services/api';
+import { GoogleLogin } from '@react-oauth/google';
 
 const FieldError = ({ msg }) => msg
   ? <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><AlertCircle size={11} />{msg}</p>
@@ -25,15 +26,17 @@ const validate = ({ name, email, password, phone, businessName, location }) => {
 
 export default function DealerRegisterPage() {
   useSEO({ title: 'Become a Dealer' });
+  const { user, setAuth } = useAuthStore();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    name: '', email: '', password: '', phone: '',
+    name: user?.name || '', email: user?.email || '', password: '', phone: user?.phone || '',
     businessName: '', location: '', kraPin: '', description: ''
   });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
 
@@ -43,25 +46,32 @@ export default function DealerRegisterPage() {
   };
 
   const nextStep = () => {
-    const stepErrors = {};
-    if (step === 1) {
-      if (!form.name) stepErrors.name = 'Required';
-      if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) stepErrors.email = 'Valid email required';
-      if (!form.password || form.password.length < 8) stepErrors.password = 'Min 8 characters';
-      if (!form.phone) stepErrors.phone = 'Required';
-    }
-    if (Object.keys(stepErrors).length) { setErrors(stepErrors); return; }
-    setStep(2);
+  const stepErrors = {};
+  if (step === 1) {
+    if (!form.name) stepErrors.name = 'Required';
+    if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) stepErrors.email = 'Valid email required';
+    if (!form.password || form.password.length < 8) stepErrors.password = 'Min 8 characters';
+    if (!form.phone) stepErrors.phone = 'Required';
+    if (!agreed) { setServerError('You must agree to the Terms of Service and Privacy Policy.'); return; }
+  }
+  if (Object.keys(stepErrors).length) { setErrors(stepErrors); return; }
+  setStep(2);
   };
 
   const submit = async () => {
-  const errs = validate(form);
+  // if logged in, skip the full validate() since password/name aren't needed
+  const errs = user
+    ? (!form.businessName.trim() ? { businessName: 'Required' } : !form.location.trim() ? { location: 'Required' } : {})
+    : validate(form);
+
   if (Object.keys(errs).length) { setErrors(errs); return; }
   setServerError(''); setLoading(true);
   try {
-    const res = await api.post('/dealers/register', form);
+    const res = user
+      ? await api.post('/dealers/upgrade', { businessName: form.businessName, location: form.location, kraPin: form.kraPin, description: form.description })
+      : await api.post('/dealers/register', form);
     setAuth(res.user, res.token);
-    navigate('/dealer/onboarding'); // ← changed from /dealer/dashboard
+    navigate('/dealer/onboarding');
   } catch (err) {
     setServerError(err.response?.data?.message || 'Registration failed');
   } finally { setLoading(false); }
@@ -78,7 +88,7 @@ export default function DealerRegisterPage() {
         </div>
 
         <h1 className="font-display text-4xl tracking-wider mb-1">BECOME A DEALER</h1>
-        <p className="text-white/40 text-sm mb-2">Join East Africa's digital car marketplace</p>
+        <p className="text-white/40 text-sm mb-2">Join East Africa's digital Showroom</p>
 
         {/* Steps */}
         <div className="flex items-center gap-2 mb-8">
@@ -106,7 +116,7 @@ export default function DealerRegisterPage() {
             <>
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">Full Name</label>
-                <input value={form.name} onChange={set('name')} placeholder="John Doe"
+                <input value={form.name} onChange={set('name')} placeholder="Brian Mwangi"
                   className={`input w-full ${errors.name ? '!border-red-500/50' : ''}`} />
                 <FieldError msg={errors.name} />
               </div>
@@ -124,6 +134,54 @@ export default function DealerRegisterPage() {
               </div>
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">Password</label>
+                {/* Agreement */}
+                <div className="flex items-start gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAgreed(v => !v)}
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors
+                      ${agreed ? 'bg-brand-500 border-brand-500' : 'border-white/20 bg-transparent'}`}
+                  >
+                    {agreed && <Check size={12} className="text-white" />}
+                  </button>
+                  <p className="text-xs text-white/40 leading-relaxed">
+                    I agree to AutoNexus's{' '}
+                    <Link to="/terms-of-service" className="text-brand-400 hover:underline">Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link to="/privacy-policy" className="text-brand-400 hover:underline">Privacy Policy</Link>
+                  </p>
+                </div>
+
+                <div className="relative flex items-center gap-3 !my-2">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-white/20 text-xs">or</span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+
+                <div className="w-full [&>div]:!w-full">
+                  <GoogleLogin
+                    onSuccess={async (res) => {
+                      if (!agreed) {
+                        setServerError('You must agree to the Terms of Service and Privacy Policy.');
+                        return;
+                      }
+                      try {
+                        const data = await authApi.googleAuth(res.credential);
+                        setAuth(data.user, data.token);
+                        navigate('/dealer/onboarding');
+                      } catch (err) {
+                        setServerError(err.message || 'Google sign-in failed');
+                      }
+                    }}
+                    onError={() => setServerError('Google sign-in failed')}
+                    theme="filled_black"
+                    shape="pill"
+                    size="large"
+                    width="100%"
+                  />
+                </div>
+
+                <button onClick={nextStep} className="btn-primary w-full !py-3.5">Continue →</button>
                 <div className="relative">
                   <input type={showPass ? 'text' : 'password'} value={form.password} onChange={set('password')}
                     placeholder="Min 8 characters" className={`input w-full !pr-10 ${errors.password ? '!border-red-500/50' : ''}`} />

@@ -39,6 +39,37 @@ export const registerDealer = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+export const upgradeToDealer = async (req, res, next) => {
+  try {
+    const { businessName, location, kraPin, description, phone } = req.body;
+
+    if (!businessName?.trim() || !location?.trim()) {
+      return res.status(400).json({ message: 'Business name and location are required' });
+    }
+
+    const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        role: 'DEALER',
+        dealer: {
+          create: {
+            businessName, location, kraPin, description,
+            phone: phone || undefined,
+            trialEndsAt,
+            subscriptionStatus: 'TRIAL'
+          }
+        }
+      },
+      include: { dealer: true }
+    });
+
+    const { password: _, ...safe } = user;
+    res.json({ token: signToken(user.id, user.role), user: safe });
+  } catch (err) { next(err); }
+};
+
 // ── Get dealer profile ────────────────────────────────────────────────────────
 export const getDealerProfile = async (req, res, next) => {
   try {

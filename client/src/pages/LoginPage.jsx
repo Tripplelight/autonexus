@@ -124,7 +124,7 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          <div className="flex justify-center">
+          <div className="w-full [&>div]:!w-full">
             <GoogleLogin
               onSuccess={async (res) => {
                 try {
@@ -137,8 +137,9 @@ export default function LoginPage() {
               }}
               onError={() => setServerError('Google sign-in failed')}
               theme="filled_black"
-              shape="rectangular"
-              width="400"
+              shape="pill"
+              size="large"
+              width="100%"
             />
           </div>
 
