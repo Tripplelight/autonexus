@@ -37,7 +37,6 @@ export default function DealerRegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const { setAuth } = useAuthStore();
   const navigate = useNavigate();
 
   const set = (key) => (e) => {
