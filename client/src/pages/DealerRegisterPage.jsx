@@ -27,7 +27,7 @@ const validate = ({ name, email, password, phone, businessName, location }) => {
 export default function DealerRegisterPage() {
   useSEO({ title: 'Become a Dealer' });
   const { user, setAuth } = useAuthStore();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(user ? 2 : 1);
   const [form, setForm] = useState({
     name: user?.name || '', email: user?.email || '', password: '', phone: user?.phone || '',
     businessName: '', location: '', kraPin: '', description: ''
@@ -58,17 +58,13 @@ export default function DealerRegisterPage() {
   };
 
   const submit = async () => {
-  // if logged in, skip the full validate() since password/name aren't needed
-  const errs = user
-    ? (!form.businessName.trim() ? { businessName: 'Required' } : !form.location.trim() ? { location: 'Required' } : {})
-    : validate(form);
-
+  const errs = !form.businessName.trim() ? { businessName: 'Required' }
+    : !form.location.trim() ? { location: 'Required' } : {};
   if (Object.keys(errs).length) { setErrors(errs); return; }
+
   setServerError(''); setLoading(true);
   try {
-    const res = user
-      ? await api.post('/dealers/upgrade', { businessName: form.businessName, location: form.location, kraPin: form.kraPin, description: form.description })
-      : await api.post('/dealers/register', form);
+    const res = await api.post('/dealers/complete-registration', form);
     setAuth(res.user, res.token);
     navigate('/dealer/onboarding');
   } catch (err) {
@@ -112,7 +108,7 @@ export default function DealerRegisterPage() {
           )}
 
           {step === 1 && (
-            <>
+  <>
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">Full Name</label>
                 <input value={form.name} onChange={set('name')} placeholder="Brian Mwangi"
@@ -131,56 +127,9 @@ export default function DealerRegisterPage() {
                   className={`input w-full ${errors.phone ? '!border-red-500/50' : ''}`} />
                 <FieldError msg={errors.phone} />
               </div>
+
               <div>
                 <label className="text-xs text-white/40 mb-1.5 block">Password</label>
-                {/* Agreement */}
-                <div className="flex items-start gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setAgreed(v => !v)}
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors
-                      ${agreed ? 'bg-brand-500 border-brand-500' : 'border-white/20 bg-transparent'}`}
-                  >
-                    {agreed && <Check size={12} className="text-white" />}
-                  </button>
-                  <p className="text-xs text-white/40 leading-relaxed">
-                    I agree to AutoNexus's{' '}
-                    <Link to="/terms-of-service" className="text-brand-400 hover:underline">Terms of Service</Link>
-                    {' '}and{' '}
-                    <Link to="/privacy-policy" className="text-brand-400 hover:underline">Privacy Policy</Link>
-                  </p>
-                </div>
-
-                <div className="relative flex items-center gap-3 !my-2">
-                  <div className="flex-1 h-px bg-white/10" />
-                  <span className="text-white/20 text-xs">or</span>
-                  <div className="flex-1 h-px bg-white/10" />
-                </div>
-
-                <div className="w-full [&>div]:!w-full">
-                  <GoogleLogin
-                    onSuccess={async (res) => {
-                      if (!agreed) {
-                        setServerError('You must agree to the Terms of Service and Privacy Policy.');
-                        return;
-                      }
-                      try {
-                        const data = await authApi.googleAuth(res.credential);
-                        setAuth(data.user, data.token);
-                        navigate('/dealer/onboarding');
-                      } catch (err) {
-                        setServerError(err.message || 'Google sign-in failed');
-                      }
-                    }}
-                    onError={() => setServerError('Google sign-in failed')}
-                    theme="filled_black"
-                    shape="pill"
-                    size="large"
-                    width="100%"
-                  />
-                </div>
-
-                <button onClick={nextStep} className="btn-primary w-full !py-3.5">Continue →</button>
                 <div className="relative">
                   <input type={showPass ? 'text' : 'password'} value={form.password} onChange={set('password')}
                     placeholder="Min 8 characters" className={`input w-full !pr-10 ${errors.password ? '!border-red-500/50' : ''}`} />
@@ -191,7 +140,59 @@ export default function DealerRegisterPage() {
                 </div>
                 <FieldError msg={errors.password} />
               </div>
+
+              {/* Agreement */}
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAgreed(v => !v)}
+                  className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors
+                    ${agreed ? 'bg-brand-500 border-brand-500' : 'border-white/20 bg-transparent'}`}
+                >
+                  {agreed && <Check size={12} className="text-white" />}
+                </button>
+                <p className="text-xs text-white/40 leading-relaxed">
+                  I agree to AutoNexus's{' '}
+                  <Link to="/terms-of-service" className="text-brand-400 hover:underline">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link to="/privacy-policy" className="text-brand-400 hover:underline">Privacy Policy</Link>
+                </p>
+              </div>
+
               <button onClick={nextStep} className="btn-primary w-full !py-3.5">Continue →</button>
+
+              <div className="relative flex items-center gap-3 !my-2">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-white/20 text-xs">or</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              <div className="w-full [&>div]:!w-full">
+                <GoogleLogin
+                  onSuccess={async (res) => {
+                    if (!agreed) {
+                      setServerError('You must agree to the Terms of Service and Privacy Policy.');
+                      return;
+                    }
+                    try {
+                      const data = await api.post('/dealers/google-auth', { credential: res.credential });
+                      setAuth(data.user, data.token);
+                      if (data.needsBusinessInfo) {
+                        setStep(2); // jump straight to business info, skip account creation
+                      } else {
+                        navigate('/dealer/onboarding');
+                      }
+                    } catch (err) {
+                      setServerError(err.response?.data?.message || 'Google sign-in failed');
+                    }
+                  }}
+                  onError={() => setServerError('Google sign-in failed')}
+                  theme="filled_black"
+                  shape="pill"
+                  size="large"
+                  width="100%"
+                />
+              </div>
             </>
           )}
 

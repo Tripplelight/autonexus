@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sendWelcomeEmail } from '../services/email.service.js';
 import { computeSubscription, syncDealerStatus } from '../utils/subscription.js';
+import { OAuth2Client } from 'google-auth-library';
 
 const signToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -39,9 +40,60 @@ export const registerDealer = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-export const upgradeToDealer = async (req, res, next) => {
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+export const googleAuthDealer = async (req, res, next) => {
   try {
-    const { businessName, location, kraPin, description, phone } = req.body;
+    const { credential } = req.body;
+    if (!credential) return res.status(400).json({ message: 'No credential provided' });
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const { sub: googleId, email, name } = ticket.getPayload();
+
+    let user = await prisma.user.findFirst({
+      where: { OR: [{ googleId }, { email }] },
+      include: { dealer: true }
+    });
+
+    if (user) {
+      // Already exists — link googleId if missing, but don't touch role/dealer here
+      if (!user.googleId) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { googleId },
+          include: { dealer: true }
+        });
+      }
+      const { password: _, ...safe } = user;
+      return res.json({ token: signToken(user.id, user.role), user: safe, needsBusinessInfo: !user.dealer });
+    }
+
+    // Brand new user — create as DEALER with empty dealer shell
+    const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    user = await prisma.user.create({
+      data: {
+        name, email, googleId, role: 'DEALER',
+        dealer: {
+          create: {
+            businessName: '', location: '',
+            trialEndsAt, subscriptionStatus: 'TRIAL'
+          }
+        }
+      },
+      include: { dealer: true }
+    });
+
+    sendWelcomeEmail({ user }).catch(console.error);
+    const { password: _, ...safe } = user;
+    res.status(201).json({ token: signToken(user.id, user.role), user: safe, needsBusinessInfo: true });
+  } catch (err) { next(err); }
+};
+
+export const completeDealerRegistration = async (req, res, next) => {
+  try {
+    const { businessName, location, kraPin, description, phone, name, email, password } = req.body;
 
     if (!businessName?.trim() || !location?.trim()) {
       return res.status(400).json({ message: 'Business name and location are required' });
@@ -49,24 +101,53 @@ export const upgradeToDealer = async (req, res, next) => {
 
     const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    const user = await prisma.user.update({
-      where: { id: req.user.id },
+    // Case A: already authenticated (buyer upgrading OR Google-created shell)
+    if (req.user) {
+      const existingDealer = await prisma.dealer.findUnique({ where: { userId: req.user.id } });
+
+      let user;
+      if (existingDealer) {
+        // Google shell already exists — just fill it in
+        await prisma.dealer.update({
+          where: { userId: req.user.id },
+          data: { businessName, location, kraPin: kraPin || null, description: description || null, phone: phone || existingDealer.phone }
+        });
+        user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { dealer: true } });
+      } else {
+        // Buyer upgrading — create the Dealer row, set role
+        user = await prisma.user.update({
+          where: { id: req.user.id },
+          data: {
+            role: 'DEALER',
+            dealer: { create: { businessName, location, kraPin, description, phone: phone || '', trialEndsAt, subscriptionStatus: 'TRIAL' } }
+          },
+          include: { dealer: true }
+        });
+      }
+
+      const { password: _, ...safe } = user;
+      return res.json({ token: signToken(user.id, user.role), user: safe });
+    }
+
+    // Case B: brand new email/password signup, not authenticated yet
+    if (!name?.trim() || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+    const exists = await prisma.user.findUnique({ where: { email } });
+    if (exists) return res.status(409).json({ message: 'Email already in use' });
+
+    const hashed = await bcrypt.hash(password, 12);
+    const newUser = await prisma.user.create({
       data: {
-        role: 'DEALER',
-        dealer: {
-          create: {
-            businessName, location, kraPin, description,
-            phone: phone || undefined,
-            trialEndsAt,
-            subscriptionStatus: 'TRIAL'
-          }
-        }
+        name, email, password: hashed, phone, role: 'DEALER',
+        dealer: { create: { businessName, phone, location, kraPin, description, trialEndsAt, subscriptionStatus: 'TRIAL' } }
       },
       include: { dealer: true }
     });
 
-    const { password: _, ...safe } = user;
-    res.json({ token: signToken(user.id, user.role), user: safe });
+    sendWelcomeEmail({ user: newUser }).catch(console.error);
+    const { password: __, ...safeNew } = newUser;
+    res.status(201).json({ token: signToken(newUser.id, newUser.role), user: safeNew });
   } catch (err) { next(err); }
 };
 

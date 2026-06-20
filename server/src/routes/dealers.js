@@ -3,18 +3,17 @@ import {
   registerDealer, getDealerProfile, updateDealerProfile,
   getDealerCars, getDealerOrders, checkSubscription,
   getAllDealers, updateDealerSubscription, suspendDealer,
-  upgradeToDealer, getAllPayments
+  getAllPayments, completeDealerRegistration, googleAuthDealer
 } from '../controllers/dealer.controller.js';
-import { protect, dealerOnly, superAdminOnly } from '../middleware/auth.js';
+import { protect, dealerOnly, superAdminOnly, optionalAuth } from '../middleware/auth.js';
 import { upload } from '../config/cloudinary.js';
 
 const router = Router();
 
 // Public
 router.post('/register', registerDealer);
-
-// Logged-in, any role → upgrade to dealer
-router.post('/upgrade', protect, upgradeToDealer);
+router.post('/google-auth', googleAuthDealer);
+router.post('/complete-registration', optionalAuth, completeDealerRegistration);
 
 // Dealer protected
 router.get('/profile', protect, dealerOnly, getDealerProfile);
