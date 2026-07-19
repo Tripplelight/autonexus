@@ -207,7 +207,7 @@ export default function RegisterPage() {
                 }}
                 onError={() => setServerError('Google sign-in failed')}
                 theme="filled_black"
-                shape="rectangular"
+                shape="pill"
                 size="large"
                 width="100%"
               />

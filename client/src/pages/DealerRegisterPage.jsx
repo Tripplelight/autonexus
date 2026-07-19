@@ -45,6 +45,7 @@ export default function DealerRegisterPage() {
   };
 
   const nextStep = () => {
+    setServerError('');
   const stepErrors = {};
   if (step === 1) {
     if (!form.name) stepErrors.name = 'Required';
